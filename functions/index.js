@@ -5,9 +5,9 @@ const store = require('./firestore');
 const server = gqlServer();
 
 const graphql = https.onRequest(server);
-const firestore1 = https.onRequest(store);
+const firestore = https.onRequest(store);
 
 module.exports = {
   graphql,
-  firestore1
+  firestore
 };

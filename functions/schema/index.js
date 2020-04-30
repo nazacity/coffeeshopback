@@ -7,7 +7,7 @@ const schema = gql`
   }
 
   type Mutation {
-    signinWithAccessToken(token: String): User
+    signinWithAccessToken(accessToken: String): User
   }
   scalar Date
 
@@ -17,26 +17,27 @@ const schema = gql`
     lastName: String
     email: String
     phone: String
-    picturUrl: String
+    pictureUrl: String
     state: State
     address: [Address]
     products: [Product]
     carts: [CartItem]!
-    createdAt: Date!
+    createdAt: Date
   }
 
   enum State {
     admin
     employee
     client
-    guesss
+    guess
   }
 
   type Product {
     id: ID!
+    name: String!
     description: String!
     price: Float!
-    imageUrl: String!
+    pictureUrl: String!
     user: User!
     createdAt: Date!
   }
@@ -54,7 +55,7 @@ const schema = gql`
     subdetail: String
     district: String
     city: String
-    Province: String
+    province: String
     zip: String
   }
 `;

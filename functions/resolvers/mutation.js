@@ -8,7 +8,6 @@ const Mutation = {
         accessToken
       }
     );
-    console.log('test', user.data);
     return user.data;
   }
 };

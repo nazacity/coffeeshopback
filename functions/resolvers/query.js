@@ -1,14 +1,15 @@
 const axios = require('axios');
 
 const Query = {
-  user: async (parent, { accessToken }, context, info) => {
-    const user = await axios.post(
+  user: async (parent, args, { accessToken }, info) => {
+    //console.log('accessToken', accessToken);
+    const getuser = await axios.post(
       'https://us-central1-coffeecafesho.cloudfunctions.net/firestore/user',
       {
         accessToken
       }
     );
-    return user.data;
+    return getuser.data;
   },
   users: async (parent, args, context, info) => {
     const users = await axios.get(

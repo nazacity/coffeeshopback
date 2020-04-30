@@ -21,7 +21,12 @@ exports.getUser = async (req, res) => {
     .collection('users')
     .doc(line.userId)
     .get();
-  if (doc.empty) {
+
+  if (doc.exists) {
+    let data = { id: doc.id, ...doc.data() };
+    res.send(data);
+    return data;
+  } else {
     const data = {
       id: 'guess',
       firstName: '',
@@ -35,10 +40,6 @@ exports.getUser = async (req, res) => {
       carts: [],
       createdAt: ''
     };
-    res.send(data);
-    return data;
-  } else {
-    let data = { id: doc.id, ...doc.data() };
     res.send(data);
     return data;
   }
@@ -56,7 +57,6 @@ exports.getUsers = async (req, res) => {
 
 exports.signinWithAccessToken = async (req, res) => {
   const { accessToken } = req.body;
-  console.log('siginrun', accessToken);
   if (!accessToken) res.send({ message: 'No AccessToken' });
   let line;
   await axios
@@ -70,7 +70,6 @@ exports.signinWithAccessToken = async (req, res) => {
     .catch(err => {
       console.log(err);
     });
-  console.log('line', line);
   if (!line) {
     const data = {
       id: 'guess',
@@ -97,7 +96,6 @@ exports.signinWithAccessToken = async (req, res) => {
     if (data.pictureUrl !== line.pictureUrl) {
       data.pictureUrl == line.pictureUrl;
     }
-    console.log('data send back from firestore', data);
     res.send(data);
     return data;
   } else {
@@ -118,7 +116,6 @@ exports.signinWithAccessToken = async (req, res) => {
       .set(data);
     data.id = line.userId;
     res.send(data);
-    console.log('no data data send back from firestore', data);
     return data;
   }
 };

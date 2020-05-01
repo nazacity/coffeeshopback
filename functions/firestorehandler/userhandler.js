@@ -22,9 +22,13 @@ exports.getUser = async (req, res) => {
   if (doc.exists) {
     let data;
     if (doc.data().pictureUrl !== line.pictureUrl) {
-      data = { id: doc.id, pictureUrl: line.pictureUrl, ...doc.data() };
+      db.collection('users').doc(line.userId).update({
+        pictureUrl: line.pictureUrl,
+      });
+      data = { id: doc.id, ...doc.data(), pictureUrl: line.pictureUrl };
+    } else {
+      data = { id: doc.id, ...doc.data() };
     }
-    data = { id: doc.id, ...doc.data() };
     res.send(data);
     return data;
   } else {
@@ -90,9 +94,14 @@ exports.signinWithAccessToken = async (req, res) => {
   }
   const doc = await db.collection('users').doc(line.userId).get();
   if (doc.exists) {
-    let data = { id: doc.id, ...doc.data() };
-    if (data.pictureUrl !== line.pictureUrl) {
-      data.pictureUrl == line.pictureUrl;
+    let data;
+    if (doc.data().pictureUrl !== line.pictureUrl) {
+      db.collection('users').doc(line.userId).update({
+        pictureUrl: line.pictureUrl,
+      });
+      data = { id: doc.id, ...doc.data(), pictureUrl: line.pictureUrl };
+    } else {
+      data = { id: doc.id, ...doc.data() };
     }
     res.send(data);
     return data;

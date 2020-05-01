@@ -20,7 +20,11 @@ exports.getUser = async (req, res) => {
   const doc = await db.collection('users').doc(line.userId).get();
 
   if (doc.exists) {
-    let data = { id: doc.id, ...doc.data() };
+    let data;
+    if (doc.data().pictureUrl !== line.pictureUrl) {
+      data = { id: doc.id, pictureUrl: line.pictureUrl, ...doc.data() };
+    }
+    data = { id: doc.id, ...doc.data() };
     res.send(data);
     return data;
   } else {

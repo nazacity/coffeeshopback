@@ -3,7 +3,8 @@ const cors = require('cors');
 const {
   getUser,
   getUsers,
-  signinWithAccessToken
+  signinWithAccessToken,
+  register,
 } = require('./firestorehandler/userhandler');
 
 store.use(cors());
@@ -12,5 +13,6 @@ store.use(cors());
 store.get('/users', getUsers);
 store.post('/user', getUser);
 store.post('/signinwithaccesstoken', signinWithAccessToken);
+store.post('/register', register);
 
 module.exports = store;

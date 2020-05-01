@@ -6,9 +6,10 @@ const Query = {
     const getuser = await axios.post(
       'https://us-central1-coffeecafesho.cloudfunctions.net/firestore/user',
       {
-        accessToken
+        accessToken,
       }
     );
+    console.log(getuser.data);
     return getuser.data;
   },
   users: async (parent, args, context, info) => {
@@ -16,7 +17,7 @@ const Query = {
       'https://us-central1-coffeecafesho.cloudfunctions.net/firestore/users'
     );
     return users.data;
-  }
+  },
 };
 
 module.exports = Query;

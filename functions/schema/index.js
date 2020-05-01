@@ -8,6 +8,13 @@ const schema = gql`
 
   type Mutation {
     signinWithAccessToken(accessToken: String): User
+    register(
+      firstName: String!
+      lastName: String!
+      email: String!
+      phone: String!
+      state: String!
+    ): User
   }
   scalar Date
 
@@ -28,7 +35,9 @@ const schema = gql`
   enum State {
     admin
     employee
-    client
+    client2
+    client1
+    client0
     guess
   }
 

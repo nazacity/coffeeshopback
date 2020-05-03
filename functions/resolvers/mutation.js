@@ -1,16 +1,65 @@
 const axios = require('axios');
+const User = require('../models/user');
+const Product = require('../models/product');
+const Catalog = require('../models/catalog');
 
 const Mutation = {
   signinWithAccessToken: async (parent, { accessToken }, context, info) => {
-    const user = await axios.post(
-      'https://us-central1-coffeecafesho.cloudfunctions.net/firestore/signinwithaccesstoken',
-      {
-        accessToken,
+    if (!accessToken) res.send({ message: 'No AccessToken' });
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    if (!line) {
+      const data = {
+        id: 'guess',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        pictureUrl: '',
+        state: 'guess',
+      };
+      return data;
+    }
+    const user = await User.findOne({ lineId: line.userId });
+
+    if (user) {
+      if (user.pictureUrl !== line.pictureUrl) {
+        await User.findByIdAndUpdate(user.id, {
+          ...user,
+          pictureUrl: line.pictureUrl,
+        });
       }
-    );
-    return user.data;
+      const newUser = await User.findById(user.id);
+      console.log('user', newUser);
+      return newUser;
+    } else {
+      data = {
+        lineId: line.userId,
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        pictureUrl: line.pictureUrl,
+        state: 'client0',
+      };
+      return User.create(data);
+    }
   },
-  register: async (parent, args, { accessToken }, info) => {
+  register: async (
+    parent,
+    { firstName, lastName, email, phone },
+    { accessToken },
+    info
+  ) => {
     if (!accessToken) throw new Error('Access Token is not defined');
     let line;
     await axios
@@ -18,7 +67,6 @@ const Mutation = {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       .then((res) => {
-        console.log(res.data);
         line = res.data;
       })
       .catch((err) => {
@@ -26,14 +74,48 @@ const Mutation = {
       });
     if (!line) throw new Error('Something wrong while calling Line Profile');
 
-    const user = await axios.post(
-      'https://us-central1-coffeecafesho.cloudfunctions.net/firestore/register',
-      { id: line.userId, ...args }
+    await User.findOneAndUpdate(
+      { lineId: line.userId },
+      { firstName, lastName, email, phone, state: 'client1' }
     );
-    if (user.error) {
-      throw new Error(user.error.message);
-    }
-    return user.data;
+    const user = await User.findOne({ lineId: line.userId });
+    return user;
+  },
+  createCatalog: async (parent, { name }, { accessToken }, info) => {
+    return Catalog.create({ name });
+  },
+  createProduct: async (
+    parent,
+    { name, description, price, pictureUrl, catalog },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+    const product = await Product.create({
+      name,
+      description,
+      price,
+      pictureUrl,
+      catalog,
+    });
+    return product;
+  },
+  deleteProduct: async (parent, { id }, { accessToken }, info) => {
+    return await Product.findByIdAndRemove(id);
   },
 };
 

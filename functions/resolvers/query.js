@@ -1,22 +1,41 @@
+const User = require('../models/user');
+const Product = require('../models/product');
+const Catalog = require('../models/catalog');
 const axios = require('axios');
 
 const Query = {
   user: async (parent, args, { accessToken }, info) => {
-    //console.log('accessToken', accessToken);
-    const getuser = await axios.post(
-      'https://us-central1-coffeecafesho.cloudfunctions.net/firestore/user',
-      {
-        accessToken,
-      }
-    );
-    console.log(getuser.data);
-    return getuser.data;
+    if (!accessToken) res.send({ message: 'No AccessToken' });
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    console.log(user);
+    return user;
   },
   users: async (parent, args, context, info) => {
-    const users = await axios.get(
-      'https://us-central1-coffeecafesho.cloudfunctions.net/firestore/users'
-    );
-    return users.data;
+    return User.find({});
+  },
+  catalogs: async (parent, args, context, info) => {
+    return Catalog.find({});
+  },
+  product: async (parent, { id }, context, info) => {
+    console.log('id', id);
+    const product = await Product.findById(id);
+    console.log('product', product);
+
+    return product;
+  },
+  products: async (parent, args, context, info) => {
+    return Product.find({});
   },
 };
 

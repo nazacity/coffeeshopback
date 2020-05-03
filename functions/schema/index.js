@@ -4,6 +4,9 @@ const schema = gql`
   type Query {
     user: User
     users: [User]!
+    catalogs: [Catalog]!
+    product(id: String!): Product
+    products: [Product]!
   }
 
   type Mutation {
@@ -15,11 +18,28 @@ const schema = gql`
       phone: String!
       state: String!
     ): User
+    createCatalog(name: String!): Catalog
+    createProduct(
+      name: String!
+      description: String!
+      price: Float!
+      pictureUrl: String!
+      catalog: String!
+    ): Product
+    deleteProduct(id: String): Product
+    addAddress(
+      subdetail: String!
+      district: String!
+      city: String!
+      province: String!
+      zip: String!
+    ): User
   }
   scalar Date
 
   type User {
-    id: ID!
+    id: String!
+    lineId: String
     firstName: String
     lastName: String
     email: String
@@ -27,8 +47,7 @@ const schema = gql`
     pictureUrl: String
     state: State
     address: [Address]
-    products: [Product]
-    carts: [CartItem]!
+    #carts: [CartItem]!
     createdAt: Date
   }
 
@@ -47,8 +66,12 @@ const schema = gql`
     description: String!
     price: Float!
     pictureUrl: String!
-    user: User!
+    catalog: String!
     createdAt: Date!
+  }
+
+  type Catalog {
+    name: String!
   }
 
   type CartItem {
@@ -60,7 +83,6 @@ const schema = gql`
   }
 
   type Address {
-    id: ID!
     subdetail: String
     district: String
     city: String

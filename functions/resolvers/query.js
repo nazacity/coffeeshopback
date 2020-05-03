@@ -17,12 +17,17 @@ const Query = {
       .catch((err) => {
         console.log(err);
       });
-    const user = await User.findOne({ lineId: line.userId });
-    console.log(user);
+    const user = await User.findOne({ lineId: line.userId }).populate({
+      path: 'carts',
+      populate: { path: 'product' },
+    });
     return user;
   },
   users: async (parent, args, context, info) => {
-    return User.find({});
+    return User.find({}).populate({
+      path: 'carts',
+      populate: { path: 'product' },
+    });
   },
   catalogs: async (parent, args, context, info) => {
     return Catalog.find({});

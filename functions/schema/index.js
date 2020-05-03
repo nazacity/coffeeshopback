@@ -27,6 +27,9 @@ const schema = gql`
       catalog: String!
     ): Product
     deleteProduct(id: String): Product
+    addToCart(id: ID!, quantity: Float!): CartItem!
+    updateCart(id: ID!, quantity: Float!): CartItem!
+    deleteCart(id: ID!): CartItem!
     addAddress(
       subdetail: String!
       district: String!
@@ -47,7 +50,7 @@ const schema = gql`
     pictureUrl: String
     state: State
     address: [Address]
-    #carts: [CartItem]!
+    carts: [CartItem]!
     createdAt: Date
   }
 

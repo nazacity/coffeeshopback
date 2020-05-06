@@ -7,6 +7,7 @@ const schema = gql`
     catalogs: [Catalog]!
     product(id: String!): Product
     products: [Product]!
+    orders: [Order]!
   }
 
   type Mutation {
@@ -37,6 +38,12 @@ const schema = gql`
       province: String!
       zip: String!
     ): User
+    createOrder(
+      amount: Float!
+      cardId: String
+      token: String
+      return_uri: String
+    ): Order
   }
   scalar Date
 
@@ -51,6 +58,8 @@ const schema = gql`
     state: State
     address: [Address]
     carts: [CartItem]!
+    orders: [Order]!
+    cards: [Card]!
     createdAt: Date
   }
 
@@ -91,6 +100,41 @@ const schema = gql`
     city: String
     province: String
     zip: String
+  }
+
+  type Order {
+    id: ID!
+    user: User
+    amount: Float
+    net: Float
+    fee: Float
+    fee_vat: Float
+    chargeId: String
+    status: String
+    items: [OrderItem!]
+    createdAt: Date
+    authorize_uri: String
+  }
+
+  type OrderItem {
+    id: ID!
+    product: Product!
+    quantity: Int!
+    user: User!
+    createdAt: Date!
+  }
+
+  type Card {
+    id: ID!
+    cardInfo: CardInfo
+  }
+
+  type CardInfo {
+    id: ID!
+    expiration_month: Int!
+    expiration_year: Int!
+    brand: String!
+    last_digits: String!
   }
 `;
 

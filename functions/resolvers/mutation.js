@@ -3,6 +3,14 @@ const User = require('../models/user');
 const Product = require('../models/product');
 const Catalog = require('../models/catalog');
 const CartItem = require('../models/cartItem');
+const OrderItem = require('../models/orderItem');
+const Order = require('../models/order');
+const {
+  retrieveCustomer,
+  createCustomer,
+  createCharge,
+  createChargeInternetBanking,
+} = require('../utils/omiseUtil');
 
 const Mutation = {
   signinWithAccessToken: async (parent, { accessToken }, context, info) => {
@@ -311,6 +319,140 @@ const Mutation = {
     );
     await User.findByIdAndUpdate(user.id, { carts: updatedUserCarts });
     return deletedCart;
+  },
+  createOrder: async (
+    parent,
+    { amount, cardId, token, return_uri },
+    { accessToken },
+    info
+  ) => {
+    // Check accessToken
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    if (!line) throw new Error('Something wrong while calling Line Profile');
+
+    // Query user from database
+    const user = await User.findOne({ lineId: line.userId }).populate({
+      path: 'carts',
+      populate: { path: 'product' },
+    });
+
+    const userId = user.id;
+
+    // Create charge with omise
+    let customer;
+
+    // Credit Card: User use exist card
+    if (amount && cardId && !token && !return_uri) {
+      const checkCardId = await retrieveCustomer(cardId);
+
+      if (!checkCardId) throw new Error('Cannot process payment');
+
+      customer = checkCardId;
+    }
+
+    // Credit Card: User use new card
+    if (amount && token && !cardId && !return_uri) {
+      const newCustomer = await createCustomer(user.email, user.name, token);
+
+      if (!newCustomer) throw new Error('Cannot process payment');
+
+      customer = newCustomer;
+
+      // update user'cards field
+      const {
+        id,
+        expiration_month,
+        expiration_year,
+        brand,
+        last_digits,
+      } = newCustomer.cards.data[0];
+
+      const newCard = {
+        id: newCustomer.id,
+        cardInfo: {
+          id,
+          expiration_month,
+          expiration_year,
+          brand,
+          last_digits,
+        },
+      };
+
+      // Update cardinfo to user database
+      //await User.findByIdAndUpdate(userId, { cards: [newCard, ...user.cards] });
+    }
+    console.log(customer);
+    console.log('amount', amount);
+    let charge;
+    if (token && return_uri) {
+      // Internet Banking
+      charge = await createChargeInternetBanking(amount, token, return_uri);
+    } else {
+      // Credit Card
+      charge = await createCharge(amount, customer.id);
+    }
+    console.log('charge', charge);
+
+    if (!charge) throw new Error('Something went wrong with payment, charge');
+
+    if (charge.status === 'failed') throw new Error('Payment was failed');
+    // Convert cartItems to orderItems
+    const convertCartToOrder = async () => {
+      return Promise.all(
+        user.carts.map((cart) =>
+          OrderItem.create({
+            product: cart.product,
+            quantity: cart.quantity,
+            user: cart.user,
+          })
+        )
+      );
+    };
+    // Create order
+    const orderItemsArray = await convertCartToOrder();
+
+    const order = await Order.create({
+      user: userId,
+      amount: charge.amount,
+      net: charge.net,
+      fee: charge.fee,
+      fee_vat: charge.fee_vat,
+      items: orderItemsArray.map((orderItem) => orderItem.id),
+      chargeId: charge.id,
+      status: charge.status,
+      authorize_uri: charge.authorize_uri,
+    });
+
+    // Delete carItem from database
+    const deleteCartItem = async () => {
+      return Promise.all(
+        user.carts.map((cart) => CartItem.findByIdAndRemove(cart.id))
+      );
+    };
+
+    await deleteCartItem();
+
+    // Update user info in database
+    await User.findByIdAndUpdate(userId, {
+      carts: [],
+      orders: !user.orders ? [order.id] : [...user.orders, order.id],
+    });
+
+    // Return order
+    return await Order.findById(order.id)
+      .populate({ path: 'user' })
+      .populate({ path: 'items', populate: { path: 'product' } });
   },
 };
 

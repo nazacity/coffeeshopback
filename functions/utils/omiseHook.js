@@ -6,10 +6,12 @@ const DB_USERNAME = 'nazacity';
 const DB_PASSWORD = 'CvzelCmkBZpwfQO6';
 const DB_NAME = 'ecommerce';
 const Order = require('../models/order');
+const OrderItem = require('../models/orderItem');
+const User = require('../models/user');
 
 const omiseWebHooks = async (req, res, next) => {
   try {
-    mongoose.connect(
+    await mongoose.connect(
       `mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@graphql-basic-zy4vi.mongodb.net/${DB_NAME}?retryWrites=true&w=majority`,
       {
         useUnifiedTopology: true,
@@ -27,7 +29,16 @@ const omiseWebHooks = async (req, res, next) => {
           }
         );
       } else {
-        await Order.findOneAndRemove({ chargeId: data.id });
+        const order = await Order.findOneAndRemove({ chargeId: data.id });
+        await order.items.map(async (item) => {
+          await OrderItem.findByIdAndRemove(item);
+        });
+
+        const user = await User.findOne(order.user);
+        const orders = await user.orders.filter((orderList) => {
+          return orderList.toString() !== order.id.toString();
+        });
+        await User.findByIdAndUpdate(user.id, { orders });
       }
     }
   } catch (error) {}

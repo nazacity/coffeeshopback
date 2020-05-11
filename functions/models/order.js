@@ -39,9 +39,9 @@ const orderSchema = new mongoose.Schema({
     type: String,
   },
   createdAt: {
-    type: Date,
+    type: Number,
     required: true,
-    default: () => Date.now(),
+    default: new Date().getTime(),
   },
 });
 

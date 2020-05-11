@@ -5,6 +5,8 @@ const Catalog = require('../models/catalog');
 const CartItem = require('../models/cartItem');
 const OrderItem = require('../models/orderItem');
 const Order = require('../models/order');
+const Promotion = require('../models/promotion');
+
 const {
   retrieveCustomer,
   createCustomer,
@@ -98,8 +100,56 @@ const Mutation = {
     });
     return user;
   },
-  createCatalog: async (parent, { name }, { accessToken }, info) => {
-    return Catalog.create({ name });
+  updateUser: async (
+    parent,
+    { id, firstName, lastName, email, phone, state },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    // Check Admin
+    const admin = await User.findOne({ lineId: line.userId });
+    if (admin.state !== 'admin') throw new Error('No Authorization');
+    const user = await User.findById(id);
+    const newInfo = {
+      firstName: firstName ? firstName : user.firstName,
+      lastName: lastName ? lastName : user.lastName,
+      email: email ? email : user.email,
+      phone: phone ? phone : user.phone,
+      state: state ? state : user.state,
+    };
+    await User.findByIdAndUpdate(id, newInfo);
+
+    return User.findById(id);
+  },
+  createCatalog: async (parent, { name, th }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    return Catalog.create({ name, th });
   },
   createProduct: async (
     parent,
@@ -107,6 +157,7 @@ const Mutation = {
     { accessToken },
     info
   ) => {
+    console.log('createProduct run');
     if (!accessToken) throw new Error('Access Token is not defined');
     let line;
     await axios
@@ -131,7 +182,78 @@ const Mutation = {
     });
     return product;
   },
+  updateProduct: async (
+    parent,
+    { id, name, description, price, pictureUrl, catalog },
+    { accessToken },
+    info
+  ) => {
+    console.log('createProduct run');
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const product = await Product.findById(id);
+    if (!product) throw new Error('No Product');
+    const updateProductInfo = {
+      name: name ? name : product.name,
+      description: description ? description : product.description,
+      price: price ? price : product.price,
+      pictureUrl: pictureUrl ? pictureUrl : product.pictureUrl,
+      catalog: catalog ? catalog : product.catalog,
+    };
+    await Product.findByIdAndUpdate(id, updateProductInfo);
+
+    return await Product.findById(id);
+  },
+  deleteCatalog: async (parent, { id }, { accessToken }, info) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    return await Catalog.findByIdAndRemove(id);
+  },
   deleteProduct: async (parent, { id }, { accessToken }, info) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
     return await Product.findByIdAndRemove(id);
   },
   addToCart: async (parent, { id, quantity }, { accessToken }, info) => {
@@ -453,6 +575,62 @@ const Mutation = {
     return await Order.findById(order.id)
       .populate({ path: 'user' })
       .populate({ path: 'items', populate: { path: 'product' } });
+  },
+  createPromotion: async (
+    parent,
+    { title, detail, pictureUrl, price, products },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const promotion = await Promotion.create({
+      title,
+      detail,
+      pictureUrl,
+      price,
+      products,
+    });
+
+    const returnPromotion = await Promotion.findById(promotion.id).populate({
+      path: 'products',
+    });
+    return returnPromotion;
+  },
+  deletePromotion: async (parent, { id }, { accessToken }, info) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const promotion = await Promotion.findByIdAndRemove(id);
+
+    return promotion;
   },
 };
 

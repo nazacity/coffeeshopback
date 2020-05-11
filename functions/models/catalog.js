@@ -5,6 +5,10 @@ const catalogSchema = new mongoose.Schema({
     type: String,
     require: true,
   },
+  th: {
+    type: String,
+    require: true,
+  },
 });
 
 const Catalog = mongoose.model('Catalog', catalogSchema);

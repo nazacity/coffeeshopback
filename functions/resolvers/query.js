@@ -3,6 +3,8 @@ const Product = require('../models/product');
 const Catalog = require('../models/catalog');
 const OrderItem = require('../models/orderItem');
 const Order = require('../models/order');
+const Promotion = require('../models/promotion');
+
 const axios = require('axios');
 
 const Query = {
@@ -19,13 +21,15 @@ const Query = {
       .catch((err) => {
         console.log(err);
       });
-    const user = await User.findOne({ lineId: line.userId }).populate({
-      path: 'carts',
-      populate: { path: 'product' },
-    }).populate({
-      path: 'orders',
-      populate: { path: 'items', populate: {path:'product'} },
-    });
+    const user = await User.findOne({ lineId: line.userId })
+      .populate({
+        path: 'carts',
+        populate: { path: 'product' },
+      })
+      .populate({
+        path: 'orders',
+        populate: { path: 'items', populate: { path: 'product' } },
+      });
     return user;
   },
   users: async (parent, args, context, info) => {
@@ -65,6 +69,11 @@ const Query = {
     return Order.find({}).populate({
       path: 'items',
       populate: { path: 'product' },
+    });
+  },
+  promotion: async (parent, args, context, info) => {
+    return Promotion.find({}).populate({
+      path: 'products',
     });
   },
 };

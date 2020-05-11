@@ -3,7 +3,7 @@ const Query = require('./query');
 
 const resolvers = {
   Query,
-  Mutation
+  Mutation,
 };
 
 module.exports = resolvers;

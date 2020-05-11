@@ -8,6 +8,7 @@ const schema = gql`
     product(id: String!): Product
     products: [Product]!
     orders: [Order]!
+    promotion: [Promotion]!
   }
 
   type Mutation {
@@ -19,7 +20,16 @@ const schema = gql`
       phone: String!
       state: String!
     ): User
-    createCatalog(name: String!): Catalog
+    updateUser(
+      id: ID!
+      firstName: String
+      lastName: String
+      email: String
+      phone: String
+      state: String
+    ): User
+    createCatalog(name: String!, th: String!): Catalog
+    deleteCatalog(id: ID!): Catalog
     createProduct(
       name: String!
       description: String!
@@ -27,7 +37,15 @@ const schema = gql`
       pictureUrl: String!
       catalog: String!
     ): Product
-    deleteProduct(id: String): Product
+    updateProduct(
+      id: ID!
+      name: String
+      description: String
+      price: Float
+      pictureUrl: String
+      catalog: String
+    ): Product
+    deleteProduct(id: ID!): Product
     addToCart(id: ID!, quantity: Float!): CartItem!
     updateCart(id: ID!, quantity: Float!): CartItem!
     deleteCart(id: ID!): CartItem!
@@ -44,11 +62,18 @@ const schema = gql`
       token: String
       return_uri: String
     ): Order
+    createPromotion(
+      title: String!
+      detail: String!
+      pictureUrl: String!
+      price: Float!
+      products: [ID!]!
+    ): Promotion
+    deletePromotion(id: ID!): Promotion
   }
-  scalar Date
 
   type User {
-    id: String!
+    id: ID!
     lineId: String
     firstName: String
     lastName: String
@@ -60,7 +85,16 @@ const schema = gql`
     carts: [CartItem]!
     orders: [Order]!
     cards: [Card]!
-    createdAt: Date
+    createdAt: Float
+  }
+
+  type Promotion {
+    id: ID!
+    title: String!
+    detail: String!
+    pictureUrl: String!
+    price: Float!
+    products: [Product!]!
   }
 
   enum State {
@@ -79,11 +113,13 @@ const schema = gql`
     price: Float!
     pictureUrl: String!
     catalog: String!
-    createdAt: Date!
+    createdAt: Float
   }
 
   type Catalog {
+    id: ID!
     name: String!
+    th: String!
   }
 
   type CartItem {
@@ -91,7 +127,7 @@ const schema = gql`
     product: Product!
     quantity: Int!
     user: User!
-    createdAt: Date!
+    createdAt: Float
   }
 
   type Address {
@@ -112,7 +148,7 @@ const schema = gql`
     chargeId: String
     status: String
     items: [OrderItem!]
-    createdAt: Date
+    createdAt: Float
     authorize_uri: String
   }
 
@@ -121,7 +157,7 @@ const schema = gql`
     product: Product!
     quantity: Int!
     user: User!
-    createdAt: Date!
+    createdAt: Float
   }
 
   type Card {

@@ -20,7 +20,10 @@ const omiseWebHooks = async (req, res, next) => {
       }
     );
     const { data, key } = req.body;
+    // Check omise callback process
     if (key === 'charge.complete') {
+      // Check omise callback status
+      // successful update order status
       if (data.status === 'successful') {
         const result = await Order.findOneAndUpdate(
           { chargeId: data.id },
@@ -29,6 +32,7 @@ const omiseWebHooks = async (req, res, next) => {
           }
         );
       } else {
+        // failed remove order and orderitem and orderlist from user
         const order = await Order.findOneAndRemove({ chargeId: data.id });
         await order.items.map(async (item) => {
           await OrderItem.findByIdAndRemove(item);

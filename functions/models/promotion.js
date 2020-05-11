@@ -1,15 +1,11 @@
 const mongoose = require('mongoose');
 
-const productSchema = new mongoose.Schema({
-  name: {
+const promotionSchema = new mongoose.Schema({
+  title: {
     type: String,
     require: true,
   },
-  description: {
-    type: String,
-    require: true,
-  },
-  price: {
+  detail: {
     type: String,
     require: true,
   },
@@ -17,10 +13,16 @@ const productSchema = new mongoose.Schema({
     type: String,
     require: true,
   },
-  catalog: {
+  price: {
     type: String,
     require: true,
   },
+  products: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+    },
+  ],
   createdAt: {
     type: Number,
     required: true,
@@ -28,6 +30,6 @@ const productSchema = new mongoose.Schema({
   },
 });
 
-const Product = mongoose.model('Product', productSchema);
+const Promotion = mongoose.model('Promotion', promotionSchema);
 
-module.exports = Product;
+module.exports = Promotion;

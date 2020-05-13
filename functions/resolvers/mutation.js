@@ -578,7 +578,7 @@ const Mutation = {
   },
   createPromotion: async (
     parent,
-    { title, detail, pictureUrl, price, products },
+    { title, detail, price, products },
     { accessToken },
     info
   ) => {
@@ -601,7 +601,7 @@ const Mutation = {
     const promotion = await Promotion.create({
       title,
       detail,
-      pictureUrl,
+      pictureUrl: '',
       price,
       products,
     });

@@ -63,11 +63,10 @@ const schema = gql`
       return_uri: String
     ): Order
     createPromotion(
-      title: String!
-      detail: String!
-      pictureUrl: String!
-      price: Float!
-      products: [ID!]!
+      title: String
+      detail: String
+      price: Float
+      products: [String]!
     ): Promotion
     deletePromotion(id: ID!): Promotion
   }

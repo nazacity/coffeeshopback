@@ -9,6 +9,8 @@ const schema = gql`
     products: [Product]!
     orders: [Order]!
     promotion: [Promotion]!
+    employee: Employee
+    employees: [Employee]!
   }
 
   type Mutation {
@@ -68,7 +70,21 @@ const schema = gql`
       price: Float
       products: [String]!
     ): Promotion
+    updatePromotion(
+      id: ID!
+      title: String
+      detail: String
+      price: Float
+      products: [String]
+    ): Promotion
     deletePromotion(id: ID!): Promotion
+    updateEmployee(
+      id: ID!
+      IDcardPictureUrl: String
+      state: String
+      position: String
+      pin: String
+    ): Employee
   }
 
   type User {
@@ -170,6 +186,16 @@ const schema = gql`
     expiration_year: Int!
     brand: String!
     last_digits: String!
+  }
+
+  type Employee {
+    id: ID!
+    user: User!
+    IDcardPictureUrl: String
+    state: String
+    position: String
+    pin: String
+    createdAt: Float
   }
 `;
 

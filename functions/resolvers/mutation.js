@@ -6,6 +6,7 @@ const CartItem = require('../models/cartItem');
 const OrderItem = require('../models/orderItem');
 const Order = require('../models/order');
 const Promotion = require('../models/promotion');
+const Employee = require('../models/employee');
 
 const {
   retrieveCustomer,
@@ -121,7 +122,9 @@ const Mutation = {
     // Check Admin
     const admin = await User.findOne({ lineId: line.userId });
     if (admin.state !== 'admin') throw new Error('No Authorization');
+
     const user = await User.findById(id);
+
     const newInfo = {
       firstName: firstName ? firstName : user.firstName,
       lastName: lastName ? lastName : user.lastName,
@@ -129,6 +132,23 @@ const Mutation = {
       phone: phone ? phone : user.phone,
       state: state ? state : user.state,
     };
+
+    if (state === 'admin' || state === 'employee') {
+      const employees = await Employee.find({}).populate({ path: 'user' });
+      index = await employees.findIndex(
+        (data) => data.user.lineId === line.userId
+      );
+      if (index > -1) {
+        await Employee.create({
+          user: user.id,
+          IDcardPictureUrl: '',
+          state: '',
+          position: '',
+          pin: '',
+        });
+      }
+    }
+
     await User.findByIdAndUpdate(id, newInfo);
 
     return User.findById(id);
@@ -611,6 +631,47 @@ const Mutation = {
     });
     return returnPromotion;
   },
+  createPromotion: async (
+    parent,
+    { id, title, detail, price, products, pictureUrl },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const promotion = await Promotion.findById(id);
+
+    if (!promotion) throw new Error('Promotion does not exit');
+
+    const updatePromotion = {
+      title: title ? title : promotion.title,
+      detail: detail ? detail : promotion.detail,
+      price: price ? price : promotion.price,
+      pictureUrl: pictureUrl ? pictureUrl : promotion.pictureUrl,
+    };
+
+    await Promotion.findByIdAndUpdate(id, updatePromotion);
+
+    const returnPromotion = await Promotion.findById(promotion.id).populate({
+      path: 'products',
+    });
+
+    return returnPromotion;
+  },
   deletePromotion: async (parent, { id }, { accessToken }, info) => {
     if (!accessToken) throw new Error('Access Token is not defined');
     let line;
@@ -631,6 +692,51 @@ const Mutation = {
     const promotion = await Promotion.findByIdAndRemove(id);
 
     return promotion;
+  },
+  updateEmployee: async (
+    parent,
+    { id, IDcardPictureUrl, state, position, pin },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+
+    const employee = await Employee.findById(id).populate({ path: 'user' });
+
+    console.log(user.state);
+    console.log(user.id);
+    console.log(employee.user.id);
+
+    if (user.state !== 'admin' && user.id !== employee.user.id)
+      throw new Error('No Authorization');
+
+    const newInfo = {
+      IDcardPictureUrl: IDcardPictureUrl
+        ? IDcardPictureUrl
+        : employee.IDcardPictureUrl,
+      state: state ? state : employee.state,
+      position: position ? position : employee.position,
+      pin: pin ? pin : employee.pin,
+    };
+
+    await Employee.findByIdAndUpdate(id, newInfo);
+
+    const newEmployee = await Employee.findById(id).populate({ path: 'user' });
+
+    return newEmployee;
   },
 };
 

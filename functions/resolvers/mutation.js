@@ -138,7 +138,7 @@ const Mutation = {
       index = await employees.findIndex(
         (data) => data.user.lineId === line.userId
       );
-      if (index > -1) {
+      if (index === -1) {
         await Employee.create({
           user: user.id,
           IDcardPictureUrl: '',

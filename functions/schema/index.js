@@ -11,6 +11,9 @@ const schema = gql`
     promotion: [Promotion]!
     employee: Employee
     employees: [Employee]!
+    ordersByDay(year: Float, month: Float, day: Float): [Order]!
+    ordersByDate(startDate: Float, endDate: Float): [Order]!
+    ordersByMonth(year: Float, month: Float): [Order]!
   }
 
   type Mutation {
@@ -183,6 +186,7 @@ const schema = gql`
     items: [OrderItem]!
     createdAt: Float
     authorize_uri: String
+    step: String
   }
 
   enum HowToPay {

@@ -7,6 +7,7 @@ const Promotion = require('../models/promotion');
 const Employee = require('../models/employee');
 
 const axios = require('axios');
+const moment = require('moment');
 
 const Query = {
   user: async (parent, args, { accessToken }, info) => {
@@ -53,26 +54,43 @@ const Query = {
     return Product.find({});
   },
   orders: async (parent, args, { accessToken }, info) => {
-    if (!accessToken) res.send({ message: 'No AccessToken' });
-    let line;
-    await axios
-      .get('https://api.line.me/v2/profile', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-      .then((res) => {
-        line = res.data;
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-    // To do check state admin
-
     return Order.find({})
       .populate({
         path: 'items',
         populate: { path: 'product' },
       })
       .populate({ path: 'user' });
+  },
+  ordersByDay: async (parent, { year, month, day }, context, info) => {
+    let start = moment(`${year}-${month}-${day}`, 'YYYY MM DD').format('x');
+    let end = moment(`${year}-${month}-${day + 1}`, 'YYYY MM DD').format('x');
+
+    const orders = await Order.find({ createdAt: { $gte: start, $lte: end } })
+      .populate({ path: 'items', populate: { path: 'product' } })
+      .populate({ path: 'user' });
+
+    return orders;
+  },
+  ordersByDate: async (parent, { startDate, endDate }, context, info) => {
+    const orders = await Order.find({
+      createdAt: { $gte: startDate, $lte: endDate },
+    })
+      .populate({ path: 'items', populate: { path: 'product' } })
+      .populate({ path: 'user' });
+
+    return orders;
+  },
+  ordersByMonth: async (parent, { year, month }, context, info) => {
+    let start = moment(`${year} ${month} 1`, 'YYYY MM DD').format('x');
+    let end = moment(`${year} ${month + 1} 1`, 'YYYY MM DD').format('x');
+
+    const orders = await Order.find({
+      createdAt: { $gte: start, $lte: end },
+    })
+      .populate({ path: 'items', populate: { path: 'product' } })
+      .populate({ path: 'user' });
+
+    return orders;
   },
   promotion: async (parent, args, context, info) => {
     return Promotion.find({}).populate({

@@ -582,13 +582,16 @@ const Mutation = {
       net: charge.net,
       fee: charge.fee,
       fee_vat: charge.fee_vat,
-      branch: branch ? branch : 'online',
-      table: table ? table : '',
+      place: {
+        branch: branch ? branch : 'online',
+        table: table ? table : '',
+      },
       items: orderItemsArray.map((orderItem) => orderItem.id),
       chargeId: charge.id,
-      status: charge.status,
-      authorize_uri: charge.authorize_uri,
+      status: charge.status === 'successful' ? 'paid' : 'falied',
+      authorize_uri: charge.authorize_uri ? charge.authorize_uri : '',
       by: 'omise',
+      step: harge.status === 'successful' ? 'รออาหาร' : 'ล้มเหลว',
     });
 
     // Delete carItem from database
@@ -664,11 +667,14 @@ const Mutation = {
       amount: amount,
       discount: discount,
       net: net,
-      branch: branch ? branch : 'online',
-      table: table ? table : '',
+      place: {
+        branch: branch ? branch : 'online',
+        table: table ? table : '',
+      },
       items: orderItemsArray.map((orderItem) => orderItem.id),
       status: 'pending',
       by: 'cash',
+      step: 'รออาหาร',
     });
 
     // Delete carItem from database

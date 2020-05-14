@@ -27,15 +27,17 @@ const orderSchema = new mongoose.Schema({
     type: String,
   },
   place: {
-    branch: String,
-    table: String,
-  },
-  by: {
     branch: {
       type: String,
       default: 'Online',
     },
     table: String,
+  },
+  by: {
+    type: String,
+  },
+  step: {
+    type: String,
   },
   items: [
     {

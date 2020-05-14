@@ -67,10 +67,12 @@ const Query = {
       });
     // To do check state admin
 
-    return Order.find({}).populate({
-      path: 'items',
-      populate: { path: 'product' },
-    });
+    return Order.find({})
+      .populate({
+        path: 'items',
+        populate: { path: 'product' },
+      })
+      .populate({ path: 'user' });
   },
   promotion: async (parent, args, context, info) => {
     return Promotion.find({}).populate({

@@ -14,7 +14,11 @@ const schema = gql`
   }
 
   type Mutation {
-    signinWithAccessToken(accessToken: String): User
+    signinWithAccessToken(
+      accessToken: String
+      branch: String
+      table: String
+    ): User
     register(
       firstName: String!
       lastName: String!
@@ -58,12 +62,22 @@ const schema = gql`
       province: String!
       zip: String!
     ): User
-    createOrder(
+    createOrderByOmise(
       amount: Float!
       cardId: String
       token: String
       return_uri: String
+      discount: Float
+      branch: String
+      table: String
     ): Order
+    createOrderByCash(
+      amount: Float!
+      branch: String
+      table: String
+      discount: Float
+    ): Order
+    updateOrder(id: ID!, status: String, discount: Float): Order
     createPromotion(
       title: String
       detail: String
@@ -101,6 +115,7 @@ const schema = gql`
     orders: [Order]!
     cards: [Card]!
     createdAt: Float
+    place: Place
   }
 
   type Promotion {
@@ -157,14 +172,27 @@ const schema = gql`
     id: ID!
     user: User
     amount: Float
+    discount: Float
     net: Float
     fee: Float
     fee_vat: Float
     chargeId: String
     status: String
-    items: [OrderItem!]
+    place: Place
+    by: HowToPay
+    items: [OrderItem]!
     createdAt: Float
     authorize_uri: String
+  }
+
+  enum HowToPay {
+    cash
+    omise
+  }
+
+  type Place {
+    branch: String
+    table: String
   }
 
   type OrderItem {

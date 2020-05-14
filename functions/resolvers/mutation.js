@@ -16,7 +16,12 @@ const {
 } = require('../utils/omiseUtil');
 
 const Mutation = {
-  signinWithAccessToken: async (parent, { accessToken }, context, info) => {
+  signinWithAccessToken: async (
+    parent,
+    { accessToken, branch, table },
+    context,
+    info
+  ) => {
     if (!accessToken) res.send({ message: 'No AccessToken' });
     let line;
     await axios
@@ -39,6 +44,10 @@ const Mutation = {
         pictureUrl: '',
         state: 'guess',
         carts: [],
+        place: {
+          branch: 'online',
+          table: '',
+        },
       };
       return data;
     }
@@ -47,28 +56,28 @@ const Mutation = {
     if (user) {
       if (user.pictureUrl !== line.pictureUrl) {
         await User.findByIdAndUpdate(user.id, {
-          ...user,
           pictureUrl: line.pictureUrl,
+          place: {
+            branch: branch ? branch : 'online',
+            table: table ? table : '',
+          },
         });
       }
+
+      if (user.place.branch !== branch || user.place.table !== table) {
+        await User.findByIdAndUpdate(user.id, {
+          place: {
+            branch: branch ? branch : 'online',
+            table: table ? table : '',
+          },
+        });
+      }
+
       const updatedUser = await User.findById(user.id).populate({
         path: 'carts',
         populate: { path: 'product' },
       });
-
       return updatedUser;
-    } else {
-      data = {
-        lineId: line.userId,
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        pictureUrl: line.pictureUrl,
-        state: 'client0',
-        carts: [],
-      };
-      return User.create(data);
     }
   },
   register: async (
@@ -462,9 +471,9 @@ const Mutation = {
     await User.findByIdAndUpdate(user.id, { carts: updatedUserCarts });
     return deletedCart;
   },
-  createOrder: async (
+  createOrderByOmise: async (
     parent,
-    { amount, cardId, token, return_uri },
+    { amount, cardId, token, return_uri, branch, table, discount },
     { accessToken },
     info
   ) => {
@@ -534,15 +543,17 @@ const Mutation = {
       // Update cardinfo to user database
       //await User.findByIdAndUpdate(userId, { cards: [newCard, ...user.cards] });
     }
-    console.log(customer);
-    console.log('amount', amount);
     let charge;
     if (token && return_uri) {
       // Internet Banking
-      charge = await createChargeInternetBanking(amount, token, return_uri);
+      charge = await createChargeInternetBanking(
+        amount - discount,
+        token,
+        return_uri
+      );
     } else {
       // Credit Card
-      charge = await createCharge(amount, customer.id);
+      charge = await createCharge(amount - discount, customer.id);
     }
     console.log('charge', charge);
 
@@ -566,14 +577,98 @@ const Mutation = {
 
     const order = await Order.create({
       user: userId,
-      amount: charge.amount,
+      amount: amount,
+      discount: discount,
       net: charge.net,
       fee: charge.fee,
       fee_vat: charge.fee_vat,
+      branch: branch ? branch : 'online',
+      table: table ? table : '',
       items: orderItemsArray.map((orderItem) => orderItem.id),
       chargeId: charge.id,
       status: charge.status,
       authorize_uri: charge.authorize_uri,
+      by: 'omise',
+    });
+
+    // Delete carItem from database
+    const deleteCartItem = async () => {
+      return Promise.all(
+        user.carts.map((cart) => CartItem.findByIdAndRemove(cart.id))
+      );
+    };
+
+    await deleteCartItem();
+
+    // Update user info in database
+    await User.findByIdAndUpdate(userId, {
+      carts: [],
+      orders: !user.orders ? [order.id] : [...user.orders, order.id],
+    });
+
+    // Return order
+    return await Order.findById(order.id)
+      .populate({ path: 'user' })
+      .populate({ path: 'items', populate: { path: 'product' } });
+  },
+  createOrderByCash: async (
+    parent,
+    { amount, branch, table, discount },
+    { accessToken },
+    info
+  ) => {
+    // Check accessToken
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    if (!line) throw new Error('Something wrong while calling Line Profile');
+
+    // Query user from database
+    const user = await User.findOne({ lineId: line.userId }).populate({
+      path: 'carts',
+      populate: { path: 'product' },
+    });
+
+    if (!user) throw new Error('No User Exist');
+
+    const userId = user.id;
+
+    // Convert cartItems to orderItems
+    const convertCartToOrder = async () => {
+      return Promise.all(
+        user.carts.map((cart) =>
+          OrderItem.create({
+            product: cart.product,
+            quantity: cart.quantity,
+            user: cart.user,
+          })
+        )
+      );
+    };
+    // Create order
+    const orderItemsArray = await convertCartToOrder();
+
+    let net = amount - discount;
+
+    const order = await Order.create({
+      user: userId,
+      amount: amount,
+      discount: discount,
+      net: net,
+      branch: branch ? branch : 'online',
+      table: table ? table : '',
+      items: orderItemsArray.map((orderItem) => orderItem.id),
+      status: 'pending',
+      by: 'cash',
     });
 
     // Delete carItem from database

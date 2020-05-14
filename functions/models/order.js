@@ -7,27 +7,35 @@ const orderSchema = new mongoose.Schema({
   },
   amount: {
     type: String,
-    require: true,
   },
   net: {
     type: String,
-    require: true,
   },
   fee: {
     type: String,
-    require: true,
   },
   fee_vat: {
     type: String,
-    require: true,
   },
   chargeId: {
     type: String,
-    require: true,
   },
   status: {
     type: String,
-    require: true,
+  },
+  discount: {
+    type: String,
+  },
+  place: {
+    branch: String,
+    table: String,
+  },
+  by: {
+    branch: {
+      type: String,
+      default: 'Online',
+    },
+    table: String,
   },
   items: [
     {

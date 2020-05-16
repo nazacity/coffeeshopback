@@ -21,6 +21,12 @@ const productSchema = new mongoose.Schema({
     type: String,
     require: true,
   },
+  sales: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OrderItem',
+    },
+  ],
   createdAt: {
     type: Number,
     required: true,

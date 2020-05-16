@@ -14,6 +14,8 @@ const schema = gql`
     ordersByDay(year: Float, month: Float, day: Float): [Order]!
     ordersByDate(startDate: Float, endDate: Float): [Order]!
     ordersByMonth(year: Float, month: Float): [Order]!
+    bestSaleMonthly(year: Float, month: Float): [Product]!
+    saleDaily(year: Float, month: Float, day: Float): [Product]!
   }
 
   type Mutation {
@@ -146,7 +148,9 @@ const schema = gql`
     price: Float!
     pictureUrl: String!
     catalog: String!
+    sales: [OrderItem]!
     createdAt: Float
+    totalSales: Float
   }
 
   type Catalog {
@@ -185,7 +189,7 @@ const schema = gql`
     by: HowToPay
     items: [OrderItem]!
     createdAt: Float
-    authorize_uri: String
+    authorizeUri: String
     step: String
   }
 

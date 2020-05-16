@@ -555,7 +555,6 @@ const Mutation = {
       // Credit Card
       charge = await createCharge(amount - discount, customer.id);
     }
-    console.log('charge', charge);
 
     if (!charge) throw new Error('Something went wrong with payment, charge');
 
@@ -563,13 +562,19 @@ const Mutation = {
     // Convert cartItems to orderItems
     const convertCartToOrder = async () => {
       return Promise.all(
-        user.carts.map((cart) =>
-          OrderItem.create({
+        user.carts.map(async (cart) => {
+          const orderItem = await OrderItem.create({
             product: cart.product,
             quantity: cart.quantity,
             user: cart.user,
-          })
-        )
+          });
+          const product = await Product.findById(cart.product.id);
+          await Product.findByIdAndUpdate(cart.product.id, {
+            sales: [...product.sales, orderItem.id],
+          });
+
+          return orderItem;
+        })
       );
     };
     // Create order
@@ -589,9 +594,9 @@ const Mutation = {
       items: orderItemsArray.map((orderItem) => orderItem.id),
       chargeId: charge.id,
       status: charge.status === 'successful' ? 'paid' : 'falied',
-      authorize_uri: charge.authorize_uri ? charge.authorize_uri : '',
+      authorizeUri: charge.authorize_uri ? charge.authorize_uri : null,
       by: 'omise',
-      step: harge.status === 'successful' ? 'รออาหาร' : 'ล้มเหลว',
+      step: charge.status === 'successful' ? 'รออาหาร' : 'ล้มเหลว',
     });
 
     // Delete carItem from database
@@ -648,13 +653,19 @@ const Mutation = {
     // Convert cartItems to orderItems
     const convertCartToOrder = async () => {
       return Promise.all(
-        user.carts.map((cart) =>
-          OrderItem.create({
+        user.carts.map(async (cart) => {
+          const orderItem = await OrderItem.create({
             product: cart.product,
             quantity: cart.quantity,
             user: cart.user,
-          })
-        )
+          });
+          const product = await Product.findById(cart.product.id);
+          await Product.findByIdAndUpdate(cart.product.id, {
+            sales: [...product.sales, orderItem.id],
+          });
+
+          return orderItem;
+        })
       );
     };
     // Create order

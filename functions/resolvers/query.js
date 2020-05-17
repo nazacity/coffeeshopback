@@ -5,6 +5,8 @@ const OrderItem = require('../models/orderItem');
 const Order = require('../models/order');
 const Promotion = require('../models/promotion');
 const Employee = require('../models/employee');
+const Table = require('../models/table');
+const Place = require('../models/place');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -31,14 +33,17 @@ const Query = {
       .populate({
         path: 'orders',
         populate: { path: 'items', populate: { path: 'product' } },
-      });
+      })
+      .populate({ path: 'table' });
     return user;
   },
   users: async (parent, args, context, info) => {
-    return User.find({}).populate({
-      path: 'carts',
-      populate: { path: 'product' },
-    });
+    return User.find({})
+      .populate({
+        path: 'carts',
+        populate: { path: 'product' },
+      })
+      .populate({ path: 'table' });
   },
   catalogs: async (parent, args, context, info) => {
     return Catalog.find({});
@@ -59,7 +64,8 @@ const Query = {
         path: 'items',
         populate: { path: 'product' },
       })
-      .populate({ path: 'user' });
+      .populate({ path: 'user' })
+      .populate({ path: 'table' });
   },
   ordersByDay: async (parent, { year, month, day }, context, info) => {
     let start = moment(`${year}-${month}-${day}`, 'YYYY MM DD').format('x');

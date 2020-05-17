@@ -41,12 +41,9 @@ const userSchema = new mongoose.Schema({
       ref: 'Order',
     },
   ],
-  place: {
-    branch: {
-      type: String,
-      default: 'online',
-    },
-    table: String,
+  table: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Table',
   },
   cards: [
     {

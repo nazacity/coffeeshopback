@@ -7,6 +7,8 @@ const OrderItem = require('../models/orderItem');
 const Order = require('../models/order');
 const Promotion = require('../models/promotion');
 const Employee = require('../models/employee');
+const Table = require('../models/table');
+const Place = require('../models/place');
 
 const {
   retrieveCustomer,
@@ -44,10 +46,6 @@ const Mutation = {
         pictureUrl: '',
         state: 'guess',
         carts: [],
-        place: {
-          branch: 'online',
-          table: '',
-        },
       };
       return data;
     }
@@ -57,19 +55,6 @@ const Mutation = {
       if (user.pictureUrl !== line.pictureUrl) {
         await User.findByIdAndUpdate(user.id, {
           pictureUrl: line.pictureUrl,
-          place: {
-            branch: branch ? branch : 'online',
-            table: table ? table : '',
-          },
-        });
-      }
-
-      if (user.place.branch !== branch || user.place.table !== table) {
-        await User.findByIdAndUpdate(user.id, {
-          place: {
-            branch: branch ? branch : 'online',
-            table: table ? table : '',
-          },
         });
       }
 
@@ -78,6 +63,17 @@ const Mutation = {
         populate: { path: 'product' },
       });
       return updatedUser;
+    } else {
+      const createUser = await User.create({
+        lineId: line.userId,
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        pictureUrl: line.pictureUrl,
+        state: 'client0',
+      });
+      return createUser;
     }
   },
   register: async (
@@ -473,7 +469,7 @@ const Mutation = {
   },
   createOrderByOmise: async (
     parent,
-    { amount, cardId, token, return_uri, branch, table, discount },
+    { amount, cardId, token, return_uri },
     { accessToken },
     info
   ) => {
@@ -546,14 +542,10 @@ const Mutation = {
     let charge;
     if (token && return_uri) {
       // Internet Banking
-      charge = await createChargeInternetBanking(
-        amount - discount,
-        token,
-        return_uri
-      );
+      charge = await createChargeInternetBanking(amount, token, return_uri);
     } else {
       // Credit Card
-      charge = await createCharge(amount - discount, customer.id);
+      charge = await createCharge(amount, customer.id);
     }
 
     if (!charge) throw new Error('Something went wrong with payment, charge');
@@ -583,14 +575,9 @@ const Mutation = {
     const order = await Order.create({
       user: userId,
       amount: amount,
-      discount: discount,
       net: charge.net,
       fee: charge.fee,
       fee_vat: charge.fee_vat,
-      place: {
-        branch: branch ? branch : 'online',
-        table: table ? table : '',
-      },
       items: orderItemsArray.map((orderItem) => orderItem.id),
       chargeId: charge.id,
       status: charge.status === 'successful' ? 'paid' : 'falied',
@@ -619,12 +606,7 @@ const Mutation = {
       .populate({ path: 'user' })
       .populate({ path: 'items', populate: { path: 'product' } });
   },
-  createOrderByCash: async (
-    parent,
-    { amount, branch, table, discount },
-    { accessToken },
-    info
-  ) => {
+  createOrderByCash: async (parent, { amount }, { accessToken }, info) => {
     // Check accessToken
     if (!accessToken) throw new Error('Access Token is not defined');
     let line;
@@ -671,17 +653,9 @@ const Mutation = {
     // Create order
     const orderItemsArray = await convertCartToOrder();
 
-    let net = amount - discount;
-
     const order = await Order.create({
       user: userId,
       amount: amount,
-      discount: discount,
-      net: net,
-      place: {
-        branch: branch ? branch : 'online',
-        table: table ? table : '',
-      },
       items: orderItemsArray.map((orderItem) => orderItem.id),
       status: 'pending',
       by: 'cash',
@@ -849,6 +823,62 @@ const Mutation = {
     const newEmployee = await Employee.findById(id).populate({ path: 'user' });
 
     return newEmployee;
+  },
+  cancelOrderItemByID: async (
+    parent,
+    { orderId, orderItemId },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    await OrderItem.findByIdAndRemove(orderItemId);
+
+    const order = await Order.findById(orderId).populate({
+      path: 'items',
+      populate: { path: 'product' },
+    });
+
+    let items = order.items.filter((item) => {
+      console.log(item.id);
+      return item.id !== orderItemId && item.state === 'progressing';
+    });
+    if (items.length === 0) {
+      return Order.findByIdAndRemove(orderId);
+    }
+    await Order.findByIdAndUpdate(orderId, { items });
+    return Order.findById(orderId)
+      .populate({ path: 'user' })
+      .populate({ path: 'items', populate: { path: 'product' } });
+  },
+  doneOrderItemByID: async (parent, { orderItemId }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    await OrderItem.findByIdAndRemove(orderItemId);
+
+    await OrderItem.findByIdAndUpdate(orderItemId, {
+      state: 'done',
+    });
+
+    return OrderItem.findById(orderItemId);
   },
 };
 

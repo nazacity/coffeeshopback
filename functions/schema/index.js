@@ -16,6 +16,9 @@ const schema = gql`
     ordersByMonth(year: Float, month: Float): [Order]!
     bestSaleMonthly(year: Float, month: Float): [Product]!
     saleDaily(year: Float, month: Float, day: Float): [Product]!
+    tableByID(id: ID!): Table
+    tables: [Table]!
+    place: [Place]
   }
 
   type Mutation {
@@ -72,16 +75,8 @@ const schema = gql`
       cardId: String
       token: String
       return_uri: String
-      discount: Float
-      branch: String
-      table: String
     ): Order
-    createOrderByCash(
-      amount: Float!
-      branch: String
-      table: String
-      discount: Float
-    ): Order
+    createOrderByCash(amount: Float!): Order
     updateOrder(id: ID!, status: String, discount: Float): Order
     createPromotion(
       title: String
@@ -104,6 +99,10 @@ const schema = gql`
       position: String
       pin: String
     ): Employee
+    deleteTable(id: ID!): Table
+    createPlace(branch: String!, table: String!): Place
+    cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
+    doneOrderItemByID(orderItemId: String!): OrderItem
   }
 
   type User {
@@ -120,7 +119,7 @@ const schema = gql`
     orders: [Order]!
     cards: [Card]!
     createdAt: Float
-    place: Place
+    table: Table
   }
 
   type Promotion {
@@ -130,6 +129,16 @@ const schema = gql`
     pictureUrl: String!
     price: Float!
     products: [Product!]!
+  }
+
+  type Table {
+    id: ID!
+    place: Place
+    orders: [Order]
+    discount: Float
+    total: Float
+    net: Float
+    createdAt: Float
   }
 
   enum State {
@@ -185,7 +194,7 @@ const schema = gql`
     fee_vat: Float
     chargeId: String
     status: String
-    place: Place
+    table: Table
     by: HowToPay
     items: [OrderItem]!
     createdAt: Float
@@ -199,8 +208,9 @@ const schema = gql`
   }
 
   type Place {
-    branch: String
-    table: String
+    id: ID!
+    branch: String!
+    table: String!
   }
 
   type OrderItem {
@@ -208,6 +218,7 @@ const schema = gql`
     product: Product!
     quantity: Int!
     user: User!
+    state: String!
     createdAt: Float
   }
 

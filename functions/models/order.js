@@ -26,12 +26,9 @@ const orderSchema = new mongoose.Schema({
   discount: {
     type: String,
   },
-  place: {
-    branch: {
-      type: String,
-      default: 'Online',
-    },
-    table: String,
+  table: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Table',
   },
   by: {
     type: String,

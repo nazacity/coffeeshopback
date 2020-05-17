@@ -13,6 +13,11 @@ const orderItemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  state: {
+    type: String,
+    required: true,
+    default: 'progressing',
+  },
   createdAt: {
     type: Number,
     required: true,

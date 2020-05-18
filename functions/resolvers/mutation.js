@@ -9,6 +9,7 @@ const Promotion = require('../models/promotion');
 const Employee = require('../models/employee');
 const Table = require('../models/table');
 const Place = require('../models/place');
+const Branch = require('../models/branch');
 
 const {
   retrieveCustomer,
@@ -559,6 +560,7 @@ const Mutation = {
             product: cart.product,
             quantity: cart.quantity,
             user: cart.user,
+            state: 'progressing',
           });
           const product = await Product.findById(cart.product.id);
           await Product.findByIdAndUpdate(cart.product.id, {
@@ -640,6 +642,7 @@ const Mutation = {
             product: cart.product,
             quantity: cart.quantity,
             user: cart.user,
+            state: 'progressing',
           });
           const product = await Product.findById(cart.product.id);
           await Product.findByIdAndUpdate(cart.product.id, {
@@ -802,10 +805,6 @@ const Mutation = {
 
     const employee = await Employee.findById(id).populate({ path: 'user' });
 
-    console.log(user.state);
-    console.log(user.id);
-    console.log(employee.user.id);
-
     if (user.state !== 'admin' && user.id !== employee.user.id)
       throw new Error('No Authorization');
 
@@ -849,10 +848,14 @@ const Mutation = {
     });
 
     let items = order.items.filter((item) => {
-      console.log(item.id);
       return item.id !== orderItemId && item.state === 'progressing';
     });
     if (items.length === 0) {
+      const newUser = await User.findById(order.user);
+      const newOrder = newUser.orders.filter(
+        (order) => order.toString() !== orderId
+      );
+      await User.findByIdAndUpdate(order.user, { orders: newOrder });
       return Order.findByIdAndRemove(orderId);
     }
     await Order.findByIdAndUpdate(orderId, { items });
@@ -872,13 +875,62 @@ const Mutation = {
       .catch((err) => {
         console.log(err);
       });
-    await OrderItem.findByIdAndRemove(orderItemId);
 
     await OrderItem.findByIdAndUpdate(orderItemId, {
       state: 'done',
     });
 
     return OrderItem.findById(orderItemId);
+  },
+  createPlace: async (parent, { branch, table }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+
+    if (user.state !== 'admin' && user.id !== employee.user.id)
+      throw new Error('No Authorization');
+
+    return await Place.create({ branch: branchId, table }).populate({
+      path: 'branch',
+    });
+  },
+  createPlace: async (parent, { id }, { accessToken }, info) => {
+    return await Place.findByIdAndRemove(id);
+  },
+  createBranch: async (parent, { branch }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin' && user.id !== employee.user.id)
+      throw new Error('No Authorization');
+
+    const existBranch = await Branch.find({ branch });
+    if (existBranch.length > 0) throw new Error('Branch already exist');
+    const createBranch = await Branch.create({ branch });
+    return createBranch;
+  },
+  deleteBranch: async (parent, { id }, { accessToken }, info) => {
+    return Branch.findByIdAndRemove(id);
   },
 };
 

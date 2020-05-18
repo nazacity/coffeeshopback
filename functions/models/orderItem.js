@@ -16,7 +16,6 @@ const orderItemSchema = new mongoose.Schema({
   state: {
     type: String,
     required: true,
-    default: 'progressing',
   },
   createdAt: {
     type: Number,

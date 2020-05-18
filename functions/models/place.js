@@ -2,12 +2,21 @@ const mongoose = require('mongoose');
 
 const placeSchema = new mongoose.Schema({
   branch: {
-    type: String,
-    required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'branch',
   },
   table: {
     type: String,
     required: true,
+  },
+  state: {
+    type: String,
+    required: true,
+    default: 'Open',
+  },
+  customer: {
+    type: Number,
+    default: 0,
   },
 });
 

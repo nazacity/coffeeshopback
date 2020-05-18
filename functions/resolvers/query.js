@@ -7,6 +7,7 @@ const Promotion = require('../models/promotion');
 const Employee = require('../models/employee');
 const Table = require('../models/table');
 const Place = require('../models/place');
+const Branch = require('../models/branch');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -234,6 +235,15 @@ const Query = {
     });
     console.log(result);
     return saleProduct;
+  },
+  branch: async (parent, arg, { accessToken }, info) => {
+    return Branch.find({}).populate({ path: 'place' });
+  },
+  place: async (parent, { id }, { accessToken }, info) => {
+    return Place.findById(id).populate({ path: 'branch' });
+  },
+  places: async (parent, arg, { accessToken }, info) => {
+    return Place.find({}).populate({ path: 'branch' });
   },
 };
 

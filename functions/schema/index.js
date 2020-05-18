@@ -17,8 +17,10 @@ const schema = gql`
     bestSaleMonthly(year: Float, month: Float): [Product]!
     saleDaily(year: Float, month: Float, day: Float): [Product]!
     tableByID(id: ID!): Table
-    tables: [Table]!
-    place: [Place]
+    tables: [Table]
+    place(id: ID!): Place
+    places: [Place]
+    branch: [Branch]
   }
 
   type Mutation {
@@ -100,7 +102,10 @@ const schema = gql`
       pin: String
     ): Employee
     deleteTable(id: ID!): Table
-    createPlace(branch: String!, table: String!): Place
+    createBranch(branch: String!): Branch
+    deleteBranch(id: ID!): Branch
+    createPlace(branchId: ID!, table: String!): Place
+    deletePlace(id: ID!): Place
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
     doneOrderItemByID(orderItemId: String!): OrderItem
   }
@@ -207,10 +212,18 @@ const schema = gql`
     omise
   }
 
-  type Place {
+  type Branch {
     id: ID!
     branch: String!
+    place: [Place]
+  }
+
+  type Place {
+    id: ID!
+    branch: Branch!
     table: String!
+    state: String!
+    customer: Int
   }
 
   type OrderItem {

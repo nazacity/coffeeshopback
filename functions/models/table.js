@@ -5,17 +5,13 @@ const tableSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Place',
   },
-  total: {
+  adult: {
     type: Number,
     required: true,
   },
-  discount: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-  net: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  children: {
+    type: Number,
+    required: true,
   },
   orders: [
     {
@@ -23,6 +19,16 @@ const tableSchema = new mongoose.Schema({
       ref: 'Order',
     },
   ],
+  discount: {
+    type: Number,
+  },
+  total: {
+    type: Number,
+  },
+  net: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
   createdAt: {
     type: Number,
     required: true,

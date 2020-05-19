@@ -21,6 +21,11 @@ const productSchema = new mongoose.Schema({
     type: String,
     require: true,
   },
+  package: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
   sales: [
     {
       type: mongoose.Schema.Types.ObjectId,

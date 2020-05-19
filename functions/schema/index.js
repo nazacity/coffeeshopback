@@ -105,6 +105,12 @@ const schema = gql`
     createBranch(branch: String!): Branch
     deleteBranch(id: ID!): Branch
     createPlace(branchId: ID!, table: String!): Branch
+    updatePlaceAndCreateTable(
+      placeId: ID!
+      adult: Float!
+      children: Float!
+      package: Float
+    ): Branch
     deletePlace(id: ID!): Branch
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
     doneOrderItemByID(orderItemId: String!): OrderItem
@@ -139,6 +145,8 @@ const schema = gql`
   type Table {
     id: ID!
     place: Place
+    adult: Float
+    children: Float
     orders: [Order]
     discount: Float
     total: Float
@@ -163,6 +171,7 @@ const schema = gql`
     pictureUrl: String!
     catalog: String!
     sales: [OrderItem]!
+    package: Float!
     createdAt: Float
     totalSales: Float
   }
@@ -223,7 +232,11 @@ const schema = gql`
     branch: Branch!
     table: String!
     state: String!
-    customer: Int
+    adult: Int!
+    children: Int!
+    package: Int!
+    startTime: Float
+    bill: Table
   }
 
   type OrderItem {

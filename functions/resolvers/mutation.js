@@ -904,12 +904,15 @@ const Mutation = {
     if (indexTable > -1) throw new Error('Table already exsit');
 
     let newPlace = [...branch.place, place];
-    console.log(newPlace);
+
     await Branch.findByIdAndUpdate(branchId, {
       place: newPlace,
     });
 
-    return Branch.findById(branchId).populate({ path: 'place' });
+    return Branch.findById(branchId).populate({
+      path: 'place',
+      populate: { path: 'bill' },
+    });
   },
   deletePlace: async (parent, { id }, { accessToken }, info) => {
     return await Place.findByIdAndRemove(id);
@@ -938,6 +941,47 @@ const Mutation = {
   },
   deleteBranch: async (parent, { id }, { accessToken }, info) => {
     return Branch.findByIdAndRemove(id);
+  },
+  updatePlaceAndCreateTable: async (
+    parent,
+    { placeId, adult, children, package },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin' && user.state !== 'employee')
+      throw new Error('No Authorization');
+
+    const createTable = await Table.create({
+      place: placeId,
+      adult,
+      children,
+      package,
+    });
+
+    const place = await Place.findByIdAndUpdate(placeId, {
+      adult,
+      children,
+      bill: createTable.id,
+      state: 'Close',
+    });
+
+    return Branch.findById(place.branch).populate({
+      path: 'place',
+      populate: { path: 'bill' },
+    });
   },
 };
 

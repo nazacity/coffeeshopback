@@ -14,9 +14,24 @@ const placeSchema = new mongoose.Schema({
     required: true,
     default: 'Open',
   },
-  customer: {
+  adult: {
     type: Number,
     default: 0,
+  },
+  children: {
+    type: Number,
+    default: 0,
+  },
+  package: {
+    type: Number,
+    default: 0,
+  },
+  startTime: {
+    type: Date,
+  },
+  bill: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Table',
   },
 });
 

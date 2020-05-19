@@ -104,8 +104,8 @@ const schema = gql`
     deleteTable(id: ID!): Table
     createBranch(branch: String!): Branch
     deleteBranch(id: ID!): Branch
-    createPlace(branchId: ID!, table: String!): Place
-    deletePlace(id: ID!): Place
+    createPlace(branchId: ID!, table: String!): Branch
+    deletePlace(id: ID!): Branch
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
     doneOrderItemByID(orderItemId: String!): OrderItem
   }

@@ -138,13 +138,11 @@ const Mutation = {
       phone: phone ? phone : user.phone,
       state: state ? state : user.state,
     };
-
     if (state === 'admin' || state === 'employee') {
       const employees = await Employee.find({}).populate({ path: 'user' });
-      index = await employees.findIndex(
-        (data) => data.user.lineId === line.userId
-      );
-      if (index === -1) {
+      let indexEmployee = await employees.findIndex((data) => data.id === id);
+
+      if (indexEmployee === -1) {
         await Employee.create({
           user: user.id,
           IDcardPictureUrl: '',
@@ -882,7 +880,7 @@ const Mutation = {
 
     return OrderItem.findById(orderItemId);
   },
-  createPlace: async (parent, { branch, table }, { accessToken }, info) => {
+  createPlace: async (parent, { branchId, table }, { accessToken }, info) => {
     let line;
     await axios
       .get('https://api.line.me/v2/profile', {
@@ -899,12 +897,21 @@ const Mutation = {
 
     if (user.state !== 'admin' && user.id !== employee.user.id)
       throw new Error('No Authorization');
+    const place = await Place.create({ branch: branchId, table });
+    const branch = await Branch.findById(branchId).populate({ path: 'place' });
 
-    return await Place.create({ branch: branchId, table }).populate({
-      path: 'branch',
+    let indexTable = branch.place.findIndex((plac) => plac.table == table);
+    if (indexTable > -1) throw new Error('Table already exsit');
+
+    let newPlace = [...branch.place, place];
+    console.log(newPlace);
+    await Branch.findByIdAndUpdate(branchId, {
+      place: newPlace,
     });
+
+    return Branch.findById(branchId).populate({ path: 'place' });
   },
-  createPlace: async (parent, { id }, { accessToken }, info) => {
+  deletePlace: async (parent, { id }, { accessToken }, info) => {
     return await Place.findByIdAndRemove(id);
   },
   createBranch: async (parent, { branch }, { accessToken }, info) => {

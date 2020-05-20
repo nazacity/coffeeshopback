@@ -11,6 +11,9 @@ const Table = require('../models/table');
 const Place = require('../models/place');
 const Branch = require('../models/branch');
 const StockCatalog = require('../models/stockCatalog');
+const Stock = require('../models/stock');
+const StockAdd = require('../models/stockAdd');
+const StockOut = require('../models/stockOut');
 
 const {
   retrieveCustomer,
@@ -182,7 +185,6 @@ const Mutation = {
     { accessToken },
     info
   ) => {
-    console.log('createProduct run');
     if (!accessToken) throw new Error('Access Token is not defined');
     let line;
     await axios
@@ -213,7 +215,6 @@ const Mutation = {
     { accessToken },
     info
   ) => {
-    console.log('createProduct run');
     if (!accessToken) throw new Error('Access Token is not defined');
     let line;
     await axios
@@ -395,7 +396,6 @@ const Mutation = {
       const updatedUserCarts = user.carts.filter(
         (cartId) => cartId.toString() !== deletedCart.id.toString()
       );
-      console.log('userId', user.id);
       await User.findByIdAndUpdate(user.id, { carts: updatedUserCarts });
       return deletedCart;
     } else {
@@ -1004,6 +1004,178 @@ const Mutation = {
     if (stockCatalog) throw new Error('StcokCatalog already exsit');
 
     return StockCatalog.create({ name, th });
+  },
+  createStock: async (
+    parent,
+    { name, catalogId, branchId, pictureUrl },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+    const checkBranch = await Branch.findById(branchId).populate({
+      path: 'stock',
+    });
+    let index = checkBranch.stock.findIndex((stock) => stock.name === name);
+    if (index > -1) throw new Error('Stock already exist in this branch');
+    const createStock = await Stock.create({
+      name,
+      catalog: catalogId,
+      pictureUrl,
+      branch: branchId,
+      remain: 0,
+      amount: 0,
+    });
+
+    const updateStockCatalog = await StockCatalog.findById(catalogId);
+    await StockCatalog.findByIdAndUpdate(catalogId, {
+      stock: [...updateStockCatalog.stock, createStock.id],
+    });
+
+    const updateBranch = await Branch.findByIdAndUpdate(branchId, {
+      stock: [...checkBranch.stock, createStock.id],
+    });
+
+    return Branch.findById(branchId)
+      .populate({
+        path: 'place',
+        populate: { path: 'bill' },
+      })
+      .populate({
+        path: 'stock',
+        populate: ['catalog', 'stockAdd', 'stockOut'],
+      });
+  },
+  deleteStockCatalog: async (parent, { id }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const deleteCatalog = await StockCatalog.findByIdAndRemove(id);
+
+    const branch = await Branch.find({});
+    await branch.map(async (bran) => {
+      let newBrancStock;
+      await deleteCatalog.stock.map(async (stockId) => {
+        newBrancStock = await bran.stock.map(async (branStockId) => {
+          if (stockId.toString() === branStockId.toString()) {
+            newBrancStock = bran.stock.filter(
+              (branStockId) => branStockId.toString() !== stockId.toString()
+            );
+
+            await Branch.findByIdAndUpdate(bran.id, { stock: newBrancStock });
+          }
+        });
+
+        await Stock.findByIdAndRemove(stockId.toString());
+      });
+    });
+
+    return deleteCatalog;
+  },
+  updateStock: async (
+    parent,
+    { id, name, pictureUrl },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const updateStock = await Stock.findByIdAndUpdate(id, {
+      name,
+      pictureUrl,
+    });
+
+    return Branch.findById(updateStock.branch)
+      .populate({
+        path: 'place',
+        populate: { path: 'bill' },
+      })
+      .populate({
+        path: 'stock',
+        populate: ['catalog', 'stockAdd', 'stockOut'],
+      });
+  },
+  deleteStock: async (parent, { id }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const deleteStock = await Stock.findByIdAndRemove(id);
+
+    const updateBranch = await Branch.findById(deleteStock.branch);
+    let stockBranch = updateBranch.stock.filter((stock) => {
+      return stock.toString() !== deleteStock.id.toString();
+    });
+    await Branch.findByIdAndUpdate(deleteStock.branch, { stock: stockBranch });
+
+    const updateStockCatalog = await StockCatalog.findById(deleteStock.catalog);
+    let stockCatalog = updateStockCatalog.stock.filter((stock) => {
+      return stock.toString() !== deleteStock.id.toString();
+    });
+    await StockCatalog.findByIdAndUpdate(deleteStock.catalog, {
+      stock: stockCatalog,
+    });
+
+    await deleteStock.stockOut.map((stockOutId) => {
+      StockOut.findByIdAndRemove(stockOutId);
+    });
+    await deleteStock.stockAdd.map((stockAddId) => {
+      StockAdd.findByIdAndRemove(stockAddId);
+    });
+
+    return Branch.findById(deleteStock.branch)
+      .populate({
+        path: 'place',
+        populate: { path: 'bill' },
+      })
+      .populate({
+        path: 'stock',
+        populate: ['catalog', 'stockAdd', 'stockOut'],
+      });
   },
 };
 

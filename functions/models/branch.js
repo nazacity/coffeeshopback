@@ -11,6 +11,12 @@ const branchSchema = new mongoose.Schema({
       ref: 'Place',
     },
   ],
+  stock: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Stock',
+    },
+  ],
 });
 
 const Branch = mongoose.model('Branch', branchSchema);

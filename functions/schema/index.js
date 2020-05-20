@@ -116,6 +116,15 @@ const schema = gql`
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
     doneOrderItemByID(orderItemId: String!): OrderItem
     createStockCatalog(name: String!, th: String!): StockCatalog
+    deleteStockCatalog(id: ID!): StockCatalog
+    createStock(
+      name: String!
+      catalogId: ID!
+      branchId: ID!
+      pictureUrl: String!
+    ): Branch
+    updateStock(id: ID!, name: String!, pictureUrl: String!): Branch
+    deleteStock(id: ID!): Branch
   }
 
   type User {
@@ -265,6 +274,7 @@ const schema = gql`
     id: ID!
     name: String
     th: String
+    stock: [Stock]
   }
 
   type Stock {

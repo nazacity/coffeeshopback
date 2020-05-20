@@ -9,6 +9,7 @@ const Table = require('../models/table');
 const Place = require('../models/place');
 const Branch = require('../models/branch');
 const StockCatalog = require('../models/stockCatalog');
+const Stock = require('../models/stock');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -238,10 +239,16 @@ const Query = {
     return saleProduct;
   },
   branch: async (parent, arg, { accessToken }, info) => {
-    return Branch.find({}).populate({
-      path: 'place',
-      populate: { path: 'bill' },
-    });
+    console.log('branch');
+    return Branch.find({})
+      .populate({
+        path: 'place',
+        populate: { path: 'bill' },
+      })
+      .populate({
+        path: 'stock',
+        populate: ['catalog', 'stockAdd', 'stockOut'],
+      });
   },
   place: async (parent, { id }, { accessToken }, info) => {
     return Place.findById(id)

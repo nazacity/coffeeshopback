@@ -9,6 +9,12 @@ const stockCatalogSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  stock: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Stock',
+    },
+  ],
 });
 
 const StockCatalog = mongoose.model('StockCatalog', stockCatalogSchema);

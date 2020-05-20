@@ -10,6 +10,7 @@ const Employee = require('../models/employee');
 const Table = require('../models/table');
 const Place = require('../models/place');
 const Branch = require('../models/branch');
+const StockCatalog = require('../models/stockCatalog');
 
 const {
   retrieveCustomer,
@@ -982,6 +983,27 @@ const Mutation = {
       path: 'place',
       populate: { path: 'bill' },
     });
+  },
+  createStockCatalog: async (parent, { name, th }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const stockCatalog = await StockCatalog.findOne({ name });
+    if (stockCatalog) throw new Error('StcokCatalog already exsit');
+
+    return StockCatalog.create({ name, th });
   },
 };
 

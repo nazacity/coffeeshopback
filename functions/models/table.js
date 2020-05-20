@@ -26,8 +26,7 @@ const tableSchema = new mongoose.Schema({
     type: Number,
   },
   net: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: Number,
   },
   createdAt: {
     type: Number,

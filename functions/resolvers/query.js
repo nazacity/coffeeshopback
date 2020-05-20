@@ -8,6 +8,7 @@ const Employee = require('../models/employee');
 const Table = require('../models/table');
 const Place = require('../models/place');
 const Branch = require('../models/branch');
+const StockCatalog = require('../models/stockCatalog');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -237,13 +238,23 @@ const Query = {
     return saleProduct;
   },
   branch: async (parent, arg, { accessToken }, info) => {
-    return Branch.find({}).populate({ path: 'place' });
+    return Branch.find({}).populate({
+      path: 'place',
+      populate: { path: 'bill' },
+    });
   },
   place: async (parent, { id }, { accessToken }, info) => {
-    return Place.findById(id).populate({ path: 'branch' });
+    return Place.findById(id)
+      .populate({ path: 'branch' })
+      .populate({ path: 'bill' });
   },
   places: async (parent, arg, { accessToken }, info) => {
-    return Place.find({}).populate({ path: 'branch' });
+    return Place.find({})
+      .populate({ path: 'branch' })
+      .populate({ path: 'bill' });
+  },
+  stockCatalog: async (parent, arg, { accessToken }, info) => {
+    return StockCatalog.find({});
   },
 };
 

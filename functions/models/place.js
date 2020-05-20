@@ -26,9 +26,6 @@ const placeSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  startTime: {
-    type: Date,
-  },
   bill: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Table',

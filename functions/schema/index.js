@@ -21,6 +21,7 @@ const schema = gql`
     place(id: ID!): Place
     places: [Place]
     branch: [Branch]
+    stockCatalog: [StockCatalog]
   }
 
   type Mutation {
@@ -114,6 +115,7 @@ const schema = gql`
     deletePlace(id: ID!): Branch
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
     doneOrderItemByID(orderItemId: String!): OrderItem
+    createStockCatalog(name: String!, th: String!): StockCatalog
   }
 
   type User {
@@ -176,6 +178,26 @@ const schema = gql`
     totalSales: Float
   }
 
+  # type ProductCatalog {
+  #   id: ID!
+  #   name: String
+  #   th: String
+  #   products: [Product]
+  # }
+
+  # type Product {
+  #   id: ID!
+  #   name: String!
+  #   stocks: [StockOut]
+  #   price: Float!
+  #   detail: [String]
+  #   pictureUrl: String!
+  #   package: Float!
+  #   catalog: ProductCatalog
+  #   sales: [OrderItem]
+  #   totalSales: Float
+  # }
+
   type Catalog {
     id: ID!
     name: String!
@@ -225,6 +247,7 @@ const schema = gql`
     id: ID!
     branch: String!
     place: [Place]
+    stock: [Stock]
   }
 
   type Place {
@@ -235,8 +258,39 @@ const schema = gql`
     adult: Int!
     children: Int!
     package: Int!
-    startTime: Float
     bill: Table
+  }
+
+  type StockCatalog {
+    id: ID!
+    name: String
+    th: String
+  }
+
+  type Stock {
+    id: ID!
+    pictureUrl: String!
+    name: String!
+    catalog: StockCatalog
+    branch: Branch
+    remain: Float
+    amount: Float
+    stockAdd: [StockAdd]
+    stockOut: [StockOut]
+  }
+
+  type StockAdd {
+    id: ID!
+    stock: Stock
+    buy: Float
+    amount: Float
+  }
+
+  type StockOut {
+    id: ID!
+    stock: Stock
+    out: Float
+    cost: Float
   }
 
   type OrderItem {
@@ -265,6 +319,7 @@ const schema = gql`
     id: ID!
     user: User!
     IDcardPictureUrl: String
+    branch: Branch
     state: String
     position: String
     pin: String

@@ -25,11 +25,7 @@ const schema = gql`
   }
 
   type Mutation {
-    signinWithAccessToken(
-      accessToken: String
-      branch: String
-      table: String
-    ): User
+    signinWithAccessToken(accessToken: String): User
     register(
       firstName: String!
       lastName: String!
@@ -125,6 +121,7 @@ const schema = gql`
     ): Branch
     updateStock(id: ID!, name: String!, pictureUrl: String!): Branch
     deleteStock(id: ID!): Branch
+    createStockAdd(stockId: ID!, buy: Float, amount: Float): Branch
   }
 
   type User {
@@ -294,6 +291,7 @@ const schema = gql`
     stock: Stock
     buy: Float
     amount: Float
+    createdAt: Float
   }
 
   type StockOut {
@@ -301,6 +299,7 @@ const schema = gql`
     stock: Stock
     out: Float
     cost: Float
+    createdAt: Float
   }
 
   type OrderItem {

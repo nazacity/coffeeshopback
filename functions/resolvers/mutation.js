@@ -23,12 +23,7 @@ const {
 } = require('../utils/omiseUtil');
 
 const Mutation = {
-  signinWithAccessToken: async (
-    parent,
-    { accessToken, branch, table },
-    context,
-    info
-  ) => {
+  signinWithAccessToken: async (parent, { accessToken }, context, info) => {
     if (!accessToken) res.send({ message: 'No AccessToken' });
     let line;
     await axios
@@ -1168,6 +1163,52 @@ const Mutation = {
     });
 
     return Branch.findById(deleteStock.branch)
+      .populate({
+        path: 'place',
+        populate: { path: 'bill' },
+      })
+      .populate({
+        path: 'stock',
+        populate: ['catalog', 'stockAdd', 'stockOut'],
+      });
+  },
+  createStockAdd: async (
+    parent,
+    { stockId, buy, amount },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const createStockAdd = await StockAdd.create({
+      stock: stockId,
+      buy,
+      amount,
+    });
+
+    const stock = await Stock.findById(stockId);
+    const newStockAdd = [...stock.stockAdd, createStockAdd.id];
+    const newRemain = stock.remain + buy;
+    const newAmount = stock.amount + amount;
+    await Stock.findByIdAndUpdate(stockId, {
+      stockAdd: newStockAdd,
+      remain: newRemain,
+      amount: newAmount,
+    });
+
+    return Branch.findById(stock.branch)
       .populate({
         path: 'place',
         populate: { path: 'bill' },

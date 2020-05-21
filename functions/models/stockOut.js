@@ -11,6 +11,11 @@ const stockOutSchema = new mongoose.Schema({
   cost: {
     type: Number,
   },
+  createdAt: {
+    type: Date,
+    required: true,
+    default: () => Date.now(),
+  },
 });
 
 const StockOut = mongoose.model('StockOut', stockOutSchema);

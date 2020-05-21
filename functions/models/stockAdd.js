@@ -11,6 +11,11 @@ const stockAddSchema = new mongoose.Schema({
   amount: {
     type: Number,
   },
+  createdAt: {
+    type: Date,
+    required: true,
+    default: () => Date.now(),
+  },
 });
 
 const StockAdd = mongoose.model('StockAdd', stockAddSchema);

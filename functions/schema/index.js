@@ -22,6 +22,9 @@ const schema = gql`
     places: [Place]
     branch: [Branch]
     stockCatalog: [StockCatalog]
+    storeProductCatalog: [StoreProductCatalog]
+    storeProduct: [StoreProduct]
+    stockName: [StockName]
   }
 
   type Mutation {
@@ -122,6 +125,22 @@ const schema = gql`
     updateStock(id: ID!, name: String!, pictureUrl: String!): Branch
     deleteStock(id: ID!): Branch
     createStockAdd(stockId: ID!, buy: Float, amount: Float): Branch
+    createStoreProductCatalog(name: String!, th: String!): StoreProductCatalog
+    createStoreProduct(
+      name: String!
+      stockOutDetail: [StockOutDetailInput]!
+      price: Float!
+      pictureUrl: String!
+      catalogId: ID!
+    ): StoreProduct
+    updateStoreProduct(
+      id: ID!
+      name: String
+      price: Float
+      pictureUrl: String
+      catalogId: ID
+    ): StoreProduct
+    deleteStoreProduct(id: ID!): StoreProduct
   }
 
   type User {
@@ -171,7 +190,13 @@ const schema = gql`
     guess
   }
 
-  type Product {
+  type Catalog { #CatalogOnlineStore
+    id: ID!
+    name: String!
+    th: String!
+  }
+
+  type Product { #ProductOnlineStore
     id: ID!
     name: String!
     description: String!
@@ -184,30 +209,33 @@ const schema = gql`
     totalSales: Float
   }
 
-  # type ProductCatalog {
-  #   id: ID!
-  #   name: String
-  #   th: String
-  #   products: [Product]
-  # }
+  type StoreProductCatalog {
+    id: ID!
+    name: String
+    th: String
+    storeProducts: [StoreProduct]
+  }
 
-  # type Product {
-  #   id: ID!
-  #   name: String!
-  #   stocks: [StockOut]
-  #   price: Float!
-  #   detail: [String]
-  #   pictureUrl: String!
-  #   package: Float!
-  #   catalog: ProductCatalog
-  #   sales: [OrderItem]
-  #   totalSales: Float
-  # }
-
-  type Catalog {
+  type StoreProduct {
     id: ID!
     name: String!
-    th: String!
+    price: Float!
+    stockOutDetail: [StockOutDetail]
+    pictureUrl: String!
+    package: Float!
+    catalog: StoreProductCatalog
+    sales: [OrderItem]
+    totalSales: Float
+  }
+
+  type StockOutDetail {
+    name: String!
+    out: Float!
+  }
+
+  input StockOutDetailInput {
+    name: String!
+    out: Float!
   }
 
   type CartItem {
@@ -284,6 +312,11 @@ const schema = gql`
     amount: Float
     stockAdd: [StockAdd]
     stockOut: [StockOut]
+  }
+
+  type StockName {
+    id: ID!
+    name: String!
   }
 
   type StockAdd {

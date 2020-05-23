@@ -12,8 +12,11 @@ const Place = require('../models/place');
 const Branch = require('../models/branch');
 const StockCatalog = require('../models/stockCatalog');
 const Stock = require('../models/stock');
+const StockName = require('../models/stockName');
 const StockAdd = require('../models/stockAdd');
 const StockOut = require('../models/stockOut');
+const StoreProductCatalog = require('../models/storeProductCatalog');
+const StoreProduct = require('../models/storeProduct');
 
 const {
   retrieveCustomer,
@@ -1024,6 +1027,9 @@ const Mutation = {
     });
     let index = checkBranch.stock.findIndex((stock) => stock.name === name);
     if (index > -1) throw new Error('Stock already exist in this branch');
+
+    // const createStockName = await StockName.create({ name });
+
     const createStock = await Stock.create({
       name,
       catalog: catalogId,
@@ -1113,6 +1119,10 @@ const Mutation = {
       name,
       pictureUrl,
     });
+    const updateStockName = await StockName.findOneAndUpdate(
+      { name: updateStock.name },
+      { name: name }
+    );
 
     return Branch.findById(updateStock.branch)
       .populate({
@@ -1217,6 +1227,127 @@ const Mutation = {
         path: 'stock',
         populate: ['catalog', 'stockAdd', 'stockOut'],
       });
+  },
+  createStoreProductCatalog: async (
+    parent,
+    { name, th },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const storeProductCatalog = await StoreProductCatalog.findOne({ name });
+    if (storeProductCatalog)
+      throw new Error('StoreProductCatalog already exsit');
+
+    return StoreProductCatalog.create({ name, th });
+  },
+  createStoreProduct: async (
+    parent,
+    { name, stockOutDetail, price, pictureUrl, package, catalogId },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const checkStoreProduct = await StockCatalog.findOne({ name });
+    if (checkStoreProduct) throw new Error('StoreProduct already exsit');
+
+    const createStoreProduct = await StoreProduct.create({
+      name,
+      stockOutDetail,
+      pictureUrl,
+      price,
+      package: package ? package : 0,
+      catalog: catalogId,
+    });
+
+    const returnStoreProduct = await StoreProduct.findById(
+      createStoreProduct.id
+    ).populate({ path: 'catalog' });
+
+    return returnStoreProduct;
+  },
+  updateStoreProduct: async (
+    parent,
+    { id, name, price, pictureUrl, package, catalogId },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+    const storeProduct = await StoreProduct.findById(id);
+
+    const updateStoreProduct = await StoreProduct.findByIdAndUpdate(id, {
+      name: name ? name : storeProduct.name,
+      price: price ? price : storeProduct.price,
+      pictureUrl: pictureUrl ? pictureUrl : storeProduct.pictureUrl,
+      // package: package ? package : storeProduct.package,
+      catalog: catalogId ? catalogId : storeProduct.catalogId,
+    });
+
+    const returnStoreProduct = await StoreProduct.findById(id).populate({
+      path: 'catalog',
+    });
+
+    return returnStoreProduct;
+  },
+  deleteStoreProduct: async (parent, { id }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+    const deleteStoreProduct = await StoreProduct.findByIdAndRemove(id);
+
+    return deleteStoreProduct;
   },
 };
 

@@ -10,6 +10,9 @@ const Place = require('../models/place');
 const Branch = require('../models/branch');
 const StockCatalog = require('../models/stockCatalog');
 const Stock = require('../models/stock');
+const StockName = require('../models/stockName');
+const StoreProductCatalog = require('../models/storeProductCatalog');
+const StoreProduct = require('../models/storeProduct');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -262,6 +265,22 @@ const Query = {
   },
   stockCatalog: async (parent, arg, { accessToken }, info) => {
     return StockCatalog.find({});
+  },
+  stockName: async (parent, arg, { accessToken }, info) => {
+    const stocks = await Stock.find({});
+    let stockName = [];
+    stocks.map((stock) => {
+      if (!stockName.includes(stock.name)) {
+        stockName.push({ name: stock.name });
+      }
+    });
+    return stockName;
+  },
+  storeProductCatalog: async (parent, arg, context, info) => {
+    return StoreProductCatalog.find({});
+  },
+  storeProduct: async (parent, arg, context, info) => {
+    return StoreProduct.find({}).populate({ path: 'catalog' });
   },
 };
 

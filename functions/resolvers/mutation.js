@@ -17,6 +17,8 @@ const StockAdd = require('../models/stockAdd');
 const StockOut = require('../models/stockOut');
 const StoreProductCatalog = require('../models/storeProductCatalog');
 const StoreProduct = require('../models/storeProduct');
+const OnlineProductCatalog = require('../models/onlineProductCatalog');
+const OnlineProduct = require('../models/onlineProduct');
 
 const {
   retrieveCustomer,
@@ -1255,6 +1257,34 @@ const Mutation = {
 
     return StoreProductCatalog.create({ name, th });
   },
+  deleteStoreProductCatalog: async (parent, { id }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const deleteStoreProductCatalog = await StoreProductCatalog.findByIdAndRemove(
+      id
+    );
+
+    if (deleteStoreProductCatalog.storeProducts) {
+      await deleteStoreProductCatalog.storeProducts.map(async (product) => {
+        await StoreProduct.findByIdAndRemove(product);
+      });
+    }
+
+    return deleteStoreProductCatalog;
+  },
   createStoreProduct: async (
     parent,
     { name, stockOutDetail, price, pictureUrl, package, catalogId },
@@ -1276,12 +1306,12 @@ const Mutation = {
     const user = await User.findOne({ lineId: line.userId });
     if (user.state !== 'admin') throw new Error('No Authorization');
 
-    const checkStoreProduct = await StockCatalog.findOne({ name });
+    const checkStoreProduct = await StoreProduct.findOne({ name });
     if (checkStoreProduct) throw new Error('StoreProduct already exsit');
 
     const createStoreProduct = await StoreProduct.create({
       name,
-      stockOutDetail,
+      stockOutDetail: stockOutDetail ? stockOutDetail : null,
       pictureUrl,
       price,
       package: package ? package : 0,
@@ -1292,14 +1322,23 @@ const Mutation = {
       createStoreProduct.id
     ).populate({ path: 'catalog' });
 
+    const updateStoreProduct = await StoreProductCatalog.findById(catalogId);
+
+    if (!updateStoreProduct.storeProducts) {
+      await StoreProductCatalog.findByIdAndUpdate(catalogId, {
+        storeProducts: [createStoreProduct.id],
+      });
+    } else {
+      await StoreProductCatalog.findByIdAndUpdate(catalogId, {
+        storeProducts: [
+          ...updateStoreProduct.storeProducts,
+          createStoreProduct.id,
+        ],
+      });
+    }
     return returnStoreProduct;
   },
-  updateStoreProduct: async (
-    parent,
-    { id, name, price, pictureUrl, package, catalogId },
-    { accessToken },
-    info
-  ) => {
+  updateStoreProduct: async (parent, arg, { accessToken }, info) => {
     let line;
     await axios
       .get('https://api.line.me/v2/profile', {
@@ -1314,15 +1353,23 @@ const Mutation = {
 
     const user = await User.findOne({ lineId: line.userId });
     if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const { id } = arg;
+
     const storeProduct = await StoreProduct.findById(id);
 
-    const updateStoreProduct = await StoreProduct.findByIdAndUpdate(id, {
-      name: name ? name : storeProduct.name,
-      price: price ? price : storeProduct.price,
-      pictureUrl: pictureUrl ? pictureUrl : storeProduct.pictureUrl,
-      // package: package ? package : storeProduct.package,
-      catalog: catalogId ? catalogId : storeProduct.catalogId,
-    });
+    const newData = {
+      name: arg.name ? arg.name : storeProduct.name,
+      price: arg.price ? arg.price : storeProduct.price,
+      pictureUrl: arg.pictureUrl ? arg.pictureUrl : storeProduct.pictureUrl,
+      package: arg.package ? arg.package : storeProduct.package,
+      catalog: arg.catalogId ? arg.catalogId : storeProduct.catalog,
+    };
+
+    const updateStoreProduct = await StoreProduct.findByIdAndUpdate(
+      id,
+      newData
+    );
 
     const returnStoreProduct = await StoreProduct.findById(id).populate({
       path: 'catalog',
@@ -1347,7 +1394,199 @@ const Mutation = {
     if (user.state !== 'admin') throw new Error('No Authorization');
     const deleteStoreProduct = await StoreProduct.findByIdAndRemove(id);
 
+    const updateStoreProductCatalog = await StoreProductCatalog.findById(
+      deleteStoreProduct.catalog
+    );
+
+    const newStoreProducts = updateStoreProductCatalog.storeProducts.filter(
+      (product) => product.toString() !== id.toString()
+    );
+
+    await StoreProductCatalog.findByIdAndUpdate(deleteStoreProduct.catalog, {
+      storeProducts: newStoreProducts,
+    });
+
     return deleteStoreProduct;
+  },
+  createOnlineProductCatalog: async (
+    parent,
+    { name, th },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const onlineProductCatalog = await OnlineProductCatalog.findOne({ name });
+    if (onlineProductCatalog)
+      throw new Error('OnlineProductCatalog already exsit');
+
+    return OnlineProductCatalog.create({ name, th });
+  },
+  deleteOnlineProductCatalog: async (parent, { id }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const deleteOnlineProductCatalog = await OnlineProductCatalog.findByIdAndRemove(
+      id
+    );
+
+    if (deleteOnlineProductCatalog.onlineProducts) {
+      await deleteOnlineProductCatalog.onlineProducts.map(async (product) => {
+        await OnlineProduct.findByIdAndRemove(product);
+      });
+    }
+
+    return deleteOnlineProductCatalog;
+  },
+  createOnlineProduct: async (
+    parent,
+    { name, stockOutDetail, price, pictureUrl, package, catalogId },
+    { accessToken },
+    info
+  ) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    console.log('online run');
+    const checkOnlineProduct = await OnlineProduct.findOne({ name });
+    if (checkOnlineProduct) throw new Error('OnlineProduct already exsit');
+
+    const createOnlineProduct = await OnlineProduct.create({
+      name,
+      stockOutDetail: stockOutDetail ? stockOutDetail : null,
+      pictureUrl,
+      price,
+      package: package ? package : 0,
+      catalog: catalogId,
+    });
+
+    const updateOnlineProduct = await OnlineProductCatalog.findById(catalogId);
+
+    if (!updateOnlineProduct.onlineProducts) {
+      await OnlineProductCatalog.findByIdAndUpdate(catalogId, {
+        onlineProducts: [createOnlineProduct.id],
+      });
+    } else {
+      await OnlineProductCatalog.findByIdAndUpdate(catalogId, {
+        onlineProducts: [
+          ...updateOnlineProduct.onlineProducts,
+          createOnlineProduct.id,
+        ],
+      });
+    }
+
+    const returnOnlineProduct = await OnlineProduct.findById(
+      createOnlineProduct.id
+    ).populate({ path: 'catalog' });
+
+    return returnOnlineProduct;
+  },
+  updateOnlineProduct: async (parent, arg, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const { id } = arg;
+
+    const onlineProduct = await OnlineProduct.findById(id);
+
+    const newData = {
+      name: arg.name ? arg.name : onlineProduct.name,
+      price: arg.price ? arg.price : onlineProduct.price,
+      pictureUrl: arg.pictureUrl ? arg.pictureUrl : onlineProduct.pictureUrl,
+      package: arg.package ? arg.package : onlineProduct.package,
+      catalog: arg.catalogId ? arg.catalogId : onlineProduct.catalog,
+    };
+
+    const updateOnlineProduct = await OnlineProduct.findByIdAndUpdate(
+      id,
+      newData
+    );
+
+    const returnOnlineProduct = await OnlineProduct.findById(id).populate({
+      path: 'catalog',
+    });
+
+    return returnOnlineProduct;
+  },
+  deleteOnlineProduct: async (parent, { id }, { accessToken }, info) => {
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+    const deleteOnlineProduct = await OnlineProduct.findByIdAndRemove(id);
+
+    const updateOnlineProductCatalog = await OnlineProductCatalog.findById(
+      deleteOnlineProduct.catalog
+    );
+
+    const newOnlineProducts = updateOnlineProductCatalog.onlineProducts.filter(
+      (product) => product.toString() !== id.toString()
+    );
+
+    await OnlineProductCatalog.findByIdAndUpdate(deleteOnlineProduct.catalog, {
+      onlineProducts: newOnlineProducts,
+    });
+
+    return deleteOnlineProduct;
   },
 };
 

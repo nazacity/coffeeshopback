@@ -9,7 +9,7 @@ const storeProductCatalogSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  storeProduct: [
+  storeProducts: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'StoreProduct',
@@ -17,9 +17,9 @@ const storeProductCatalogSchema = new mongoose.Schema({
   ],
 });
 
-const StoreProduct = mongoose.model(
+const StoreProductCatalog = mongoose.model(
   'StoreProductCatalog',
   storeProductCatalogSchema
 );
 
-module.exports = StoreProduct;
+module.exports = StoreProductCatalog;

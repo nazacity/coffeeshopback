@@ -13,6 +13,8 @@ const Stock = require('../models/stock');
 const StockName = require('../models/stockName');
 const StoreProductCatalog = require('../models/storeProductCatalog');
 const StoreProduct = require('../models/storeProduct');
+const OnlineProductCatalog = require('../models/onlineProductCatalog');
+const OnlineProduct = require('../models/onlineProduct');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -281,6 +283,12 @@ const Query = {
   },
   storeProduct: async (parent, arg, context, info) => {
     return StoreProduct.find({}).populate({ path: 'catalog' });
+  },
+  onlineProductCatalog: async (parent, arg, context, info) => {
+    return OnlineProductCatalog.find({});
+  },
+  onlineProduct: async (parent, arg, context, info) => {
+    return OnlineProduct.find({}).populate({ path: 'catalog' });
   },
 };
 

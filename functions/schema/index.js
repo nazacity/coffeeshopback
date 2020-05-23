@@ -2,32 +2,46 @@ const { gql } = require('apollo-server-express');
 
 const schema = gql`
   type Query {
+    # User
     user: User
     users: [User]!
     catalogs: [Catalog]!
     product(id: String!): Product
     products: [Product]!
-    orders: [Order]!
     promotion: [Promotion]!
+    # Employee
     employee: Employee
     employees: [Employee]!
+    # Order
+    orders: [Order]!
     ordersByDay(year: Float, month: Float, day: Float): [Order]!
     ordersByDate(startDate: Float, endDate: Float): [Order]!
     ordersByMonth(year: Float, month: Float): [Order]!
     bestSaleMonthly(year: Float, month: Float): [Product]!
     saleDaily(year: Float, month: Float, day: Float): [Product]!
+
+    # Table
     tableByID(id: ID!): Table
     tables: [Table]
     place(id: ID!): Place
     places: [Place]
     branch: [Branch]
-    stockCatalog: [StockCatalog]
+
+    # StoreProduct
     storeProductCatalog: [StoreProductCatalog]
     storeProduct: [StoreProduct]
+
+    # OnlineProduct
+    onlineProductCatalog: [OnlineProductCatalog]
+    onlineProduct: [OnlineProduct]
+
+    # Stock
     stockName: [StockName]
+    stockCatalog: [StockCatalog]
   }
 
   type Mutation {
+    # User
     signinWithAccessToken(accessToken: String): User
     register(
       firstName: String!
@@ -44,6 +58,8 @@ const schema = gql`
       phone: String
       state: String
     ): User
+
+    # Product
     createCatalog(name: String!, th: String!): Catalog
     deleteCatalog(id: ID!): Catalog
     createProduct(
@@ -62,16 +78,13 @@ const schema = gql`
       catalog: String
     ): Product
     deleteProduct(id: ID!): Product
+
+    # Cart
     addToCart(id: ID!, quantity: Float!): CartItem!
     updateCart(id: ID!, quantity: Float!): CartItem!
     deleteCart(id: ID!): CartItem!
-    addAddress(
-      subdetail: String!
-      district: String!
-      city: String!
-      province: String!
-      zip: String!
-    ): User
+
+    # Order
     createOrderByOmise(
       amount: Float!
       cardId: String
@@ -80,6 +93,9 @@ const schema = gql`
     ): Order
     createOrderByCash(amount: Float!): Order
     updateOrder(id: ID!, status: String, discount: Float): Order
+    cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
+    doneOrderItemByID(orderItemId: String!): OrderItem
+
     createPromotion(
       title: String
       detail: String
@@ -112,8 +128,8 @@ const schema = gql`
       package: Float
     ): Branch
     deletePlace(id: ID!): Branch
-    cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
-    doneOrderItemByID(orderItemId: String!): OrderItem
+
+    # Stock
     createStockCatalog(name: String!, th: String!): StockCatalog
     deleteStockCatalog(id: ID!): StockCatalog
     createStock(
@@ -125,10 +141,13 @@ const schema = gql`
     updateStock(id: ID!, name: String!, pictureUrl: String!): Branch
     deleteStock(id: ID!): Branch
     createStockAdd(stockId: ID!, buy: Float, amount: Float): Branch
+
+    # StoreProduct
     createStoreProductCatalog(name: String!, th: String!): StoreProductCatalog
+    deleteStoreProductCatalog(id: ID!): StoreProductCatalog
     createStoreProduct(
       name: String!
-      stockOutDetail: [StockOutDetailInput]!
+      stockOutDetail: [StockOutDetailInput]
       price: Float!
       pictureUrl: String!
       catalogId: ID!
@@ -141,6 +160,25 @@ const schema = gql`
       catalogId: ID
     ): StoreProduct
     deleteStoreProduct(id: ID!): StoreProduct
+
+    # OnlineProduct
+    createOnlineProductCatalog(name: String!, th: String!): OnlineProductCatalog
+    deleteOnlineProductCatalog(id: ID!): OnlineProductCatalog
+    createOnlineProduct(
+      name: String!
+      stockOutDetail: [StockOutDetailInput]
+      price: Float!
+      pictureUrl: String!
+      catalogId: ID!
+    ): OnlineProduct
+    updateOnlineProduct(
+      id: ID!
+      name: String
+      price: Float
+      pictureUrl: String
+      catalogId: ID
+    ): OnlineProduct
+    deleteOnlineProduct(id: ID!): OnlineProduct
   }
 
   type User {
@@ -224,6 +262,25 @@ const schema = gql`
     pictureUrl: String!
     package: Float!
     catalog: StoreProductCatalog
+    sales: [OrderItem]
+    totalSales: Float
+  }
+
+  type OnlineProductCatalog {
+    id: ID!
+    name: String
+    th: String
+    onlineProducts: [OnlineProduct]
+  }
+
+  type OnlineProduct {
+    id: ID!
+    name: String!
+    price: Float!
+    stockOutDetail: [StockOutDetail]
+    pictureUrl: String!
+    package: Float!
+    catalog: OnlineProductCatalog
     sales: [OrderItem]
     totalSales: Float
   }
@@ -339,6 +396,7 @@ const schema = gql`
     id: ID!
     product: Product!
     quantity: Int!
+    cost: Float
     user: User!
     state: String!
     createdAt: Float

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const placeSchema = new mongoose.Schema({
   branch: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'branch',
+    ref: 'Branch',
   },
   table: {
     type: String,

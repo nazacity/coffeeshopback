@@ -19,6 +19,7 @@ const StoreProductCatalog = require('../models/storeProductCatalog');
 const StoreProduct = require('../models/storeProduct');
 const OnlineProductCatalog = require('../models/onlineProductCatalog');
 const OnlineProduct = require('../models/onlineProduct');
+const db = require('../utils/firebase');
 
 const {
   retrieveCustomer,
@@ -1587,6 +1588,96 @@ const Mutation = {
     });
 
     return deleteOnlineProduct;
+  },
+  createOrderItemFromStoreOrder: async (
+    parent,
+    { tableId, orderItem, branchId },
+    context,
+    info
+  ) => {
+    // Convert cartItems to orderItems
+    const convertCartToOrder = async () => {
+      return Promise.all(
+        orderItem.map(async (item) => {
+          const orderItem = await OrderItem.create({
+            storeProduct: item.productId,
+            quantity: item.quantity,
+            state: 'progressing',
+          });
+          const product = await StoreProduct.findById(item.productId);
+
+          await StoreProduct.findByIdAndUpdate(item.productId, {
+            sales: [...product.sales, orderItem.id],
+          });
+
+          product.stockOutDetail.map(async (stockOut) => {
+            const stock = await Stock.findOne({
+              branch: branchId,
+              name: stockOut.name,
+            });
+
+            const createStockOut = await StockOut.create({
+              stock: stock.id,
+              out: stockOut.out,
+              cost: (stock.amount / stock.remain) * stockOut.out,
+            });
+
+            const newRemain = stock.remain - stockOut.out;
+            const newAmount = stock.amount - createStockOut.cost;
+            let newStockOut = stock.stockOut;
+            newStockOut.push(createStockOut.id);
+            const newStock = await Stock.findByIdAndUpdate(stock.id, {
+              remain: newRemain,
+              amount: newAmount,
+              stockOut: newStockOut,
+            });
+          });
+
+          return OrderItem.findById(orderItem.id).populate({
+            path: 'storeProduct',
+          });
+        })
+      );
+    };
+    // Create order
+    const orderItemsArray = await convertCartToOrder();
+    const table = await Table.findById(tableId).populate({
+      path: 'place',
+      populate: 'branch',
+    });
+
+    let newItems = table.orders;
+    let dbItems = [];
+    await orderItemsArray.map((orderItem) => {
+      dbItems.push({
+        id: orderItem.id,
+        product: {
+          name: orderItem.storeProduct.name,
+          pictureUrl: orderItem.storeProduct.pictureUrl,
+        },
+        quantity: orderItem.quantity,
+      });
+      newItems = [...newItems, orderItem.id];
+    });
+
+    let data = {
+      createdAt: new Date().getTime(),
+      user: {
+        id: tableId,
+        firstName: table.place.table,
+      },
+      items: dbItems,
+    };
+
+    db.ref(`/${table.place.branch.id}`).push(data);
+
+    await Table.findByIdAndUpdate(tableId, {
+      orders: newItems,
+    });
+
+    return Table.findByIdAndUpdate(tableId)
+      .populate({ path: 'orders', populate: 'storeProduct' })
+      .populate({ path: 'place', populate: 'branch' });
   },
 };
 

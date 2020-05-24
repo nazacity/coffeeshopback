@@ -179,6 +179,13 @@ const schema = gql`
       catalogId: ID
     ): OnlineProduct
     deleteOnlineProduct(id: ID!): OnlineProduct
+
+    # Store Order
+    createOrderItemFromStoreOrder(
+      tableId: ID!
+      orderItem: [OrderItemInput]
+      branchId: ID!
+    ): Table
   }
 
   type User {
@@ -212,11 +219,16 @@ const schema = gql`
     place: Place
     adult: Float
     children: Float
-    orders: [Order]
+    orders: [OrderItem]
     discount: Float
     total: Float
     net: Float
     createdAt: Float
+  }
+
+  input OrderItemInput {
+    productId: ID!
+    quantity: Float!
   }
 
   enum State {
@@ -394,10 +406,10 @@ const schema = gql`
 
   type OrderItem {
     id: ID!
-    product: Product!
+    product: Product
+    storeProduct: StoreProduct
     quantity: Int!
     cost: Float
-    user: User!
     state: String!
     createdAt: Float
   }

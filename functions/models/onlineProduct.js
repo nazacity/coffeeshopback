@@ -32,10 +32,12 @@ const onlineProductSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'OnlineProductCatalog',
   },
-  sales: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'OrderItem',
-  },
+  sales: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OrderItem',
+    },
+  ],
 });
 
 const OnlineProduct = mongoose.model('OnlineProduct', onlineProductSchema);

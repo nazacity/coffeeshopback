@@ -258,12 +258,18 @@ const Query = {
   place: async (parent, { id }, { accessToken }, info) => {
     return Place.findById(id)
       .populate({ path: 'branch' })
-      .populate({ path: 'bill' });
+      .populate({
+        path: 'bill',
+        populate: { path: 'orders', populate: { path: 'storeProduct' } },
+      });
   },
   places: async (parent, arg, { accessToken }, info) => {
     return Place.find({})
       .populate({ path: 'branch' })
-      .populate({ path: 'bill' });
+      .populate({
+        path: 'bill',
+        populate: { path: 'orders', populate: { path: 'storeProduct' } },
+      });
   },
   stockCatalog: async (parent, arg, { accessToken }, info) => {
     return StockCatalog.find({});
@@ -279,7 +285,7 @@ const Query = {
     return stockName;
   },
   storeProductCatalog: async (parent, arg, context, info) => {
-    return StoreProductCatalog.find({});
+    return StoreProductCatalog.find({}).populate({ path: 'storeProducts' });
   },
   storeProduct: async (parent, arg, context, info) => {
     return StoreProduct.find({}).populate({ path: 'catalog' });

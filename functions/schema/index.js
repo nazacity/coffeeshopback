@@ -5,9 +5,6 @@ const schema = gql`
     # User
     user: User
     users: [User]!
-    catalogs: [Catalog]!
-    product(id: String!): Product
-    products: [Product]!
     promotion: [Promotion]!
     # Employee
     employee: Employee
@@ -17,8 +14,8 @@ const schema = gql`
     ordersByDay(year: Float, month: Float, day: Float): [Order]!
     ordersByDate(startDate: Float, endDate: Float): [Order]!
     ordersByMonth(year: Float, month: Float): [Order]!
-    bestSaleMonthly(year: Float, month: Float): [Product]!
-    saleDaily(year: Float, month: Float, day: Float): [Product]!
+    bestSaleMonthly(year: Float, month: Float): [StoreProduct]!
+    saleDaily(year: Float, month: Float, day: Float): [StoreProduct]!
 
     # Table
     tableByID(id: ID!): Table
@@ -59,39 +56,14 @@ const schema = gql`
       state: String
     ): User
 
-    # Product
-    createCatalog(name: String!, th: String!): Catalog
-    deleteCatalog(id: ID!): Catalog
-    createProduct(
-      name: String!
-      description: String!
-      price: Float!
-      pictureUrl: String!
-      catalog: String!
-    ): Product
-    updateProduct(
-      id: ID!
-      name: String
-      description: String
-      price: Float
-      pictureUrl: String
-      catalog: String
-    ): Product
-    deleteProduct(id: ID!): Product
-
-    # Cart
-    addToCart(id: ID!, quantity: Float!): CartItem!
-    updateCart(id: ID!, quantity: Float!): CartItem!
-    deleteCart(id: ID!): CartItem!
-
     # Order
     createOrderByOmise(
       amount: Float!
-      cardId: String
       token: String
       return_uri: String
-    ): Order
-    createOrderByCash(amount: Float!): Order
+      orderItem: [OrderItemInput]
+      branchId: ID!
+    ): User
     updateOrder(id: ID!, status: String, discount: Float): Order
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
     doneOrderItemByID(orderItemId: String!): OrderItem
@@ -198,7 +170,6 @@ const schema = gql`
     pictureUrl: String
     state: State
     address: [Address]
-    carts: [CartItem]!
     orders: [Order]!
     cards: [Card]!
     createdAt: Float
@@ -211,7 +182,6 @@ const schema = gql`
     detail: String!
     pictureUrl: String!
     price: Float!
-    products: [Product!]!
   }
 
   type Table {
@@ -238,25 +208,6 @@ const schema = gql`
     client1
     client0
     guess
-  }
-
-  type Catalog { #CatalogOnlineStore
-    id: ID!
-    name: String!
-    th: String!
-  }
-
-  type Product { #ProductOnlineStore
-    id: ID!
-    name: String!
-    description: String!
-    price: Float!
-    pictureUrl: String!
-    catalog: String!
-    sales: [OrderItem]!
-    package: Float!
-    createdAt: Float
-    totalSales: Float
   }
 
   type StoreProductCatalog {
@@ -307,14 +258,6 @@ const schema = gql`
     out: Float!
   }
 
-  type CartItem {
-    id: ID!
-    product: Product!
-    quantity: Int!
-    user: User!
-    createdAt: Float
-  }
-
   type Address {
     subdetail: String
     district: String
@@ -338,7 +281,6 @@ const schema = gql`
     items: [OrderItem]!
     createdAt: Float
     authorizeUri: String
-    step: String
   }
 
   enum HowToPay {
@@ -406,7 +348,7 @@ const schema = gql`
 
   type OrderItem {
     id: ID!
-    product: Product
+    onlineProduct: OnlineProduct
     storeProduct: StoreProduct
     quantity: Int!
     cost: Float

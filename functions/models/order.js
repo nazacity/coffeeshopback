@@ -33,9 +33,6 @@ const orderSchema = new mongoose.Schema({
   by: {
     type: String,
   },
-  step: {
-    type: String,
-  },
   items: [
     {
       type: mongoose.Schema.Types.ObjectId,

@@ -35,36 +35,14 @@ const Query = {
       });
     const user = await User.findOne({ lineId: line.userId })
       .populate({
-        path: 'carts',
-        populate: { path: 'product' },
-      })
-      .populate({
         path: 'orders',
-        populate: { path: 'items', populate: { path: 'product' } },
+        populate: { path: 'items', populate: { path: 'onlineProduct' } },
       })
       .populate({ path: 'table' });
     return user;
   },
   users: async (parent, args, context, info) => {
-    return User.find({})
-      .populate({
-        path: 'carts',
-        populate: { path: 'product' },
-      })
-      .populate({ path: 'table' });
-  },
-  catalogs: async (parent, args, context, info) => {
-    return Catalog.find({});
-  },
-  product: async (parent, { id }, context, info) => {
-    console.log('id', id);
-    const product = await Product.findById(id);
-    console.log('product', product);
-
-    return product;
-  },
-  products: async (parent, args, context, info) => {
-    return Product.find({});
+    return User.find({}).populate({ path: 'table' });
   },
   orders: async (parent, args, { accessToken }, info) => {
     return Order.find({})
@@ -291,7 +269,7 @@ const Query = {
     return StoreProduct.find({}).populate({ path: 'catalog' });
   },
   onlineProductCatalog: async (parent, arg, context, info) => {
-    return OnlineProductCatalog.find({});
+    return OnlineProductCatalog.find({}).populate({ path: 'onlineProducts' });
   },
   onlineProduct: async (parent, arg, context, info) => {
     return OnlineProduct.find({}).populate({ path: 'catalog' });

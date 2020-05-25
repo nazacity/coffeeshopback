@@ -21,12 +21,6 @@ const userSchema = new mongoose.Schema({
   pictureUrl: {
     type: String,
   },
-  carts: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'CartItem',
-    },
-  ],
   state: {
     type: String,
   },

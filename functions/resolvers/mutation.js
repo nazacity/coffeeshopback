@@ -1115,7 +1115,7 @@ const Mutation = {
       .populate({ path: 'orders', populate: 'storeProduct' })
       .populate({ path: 'place', populate: 'branch' });
   },
-  createOrderByOmise: async (
+  createOrderItemFromOnlineOrder: async (
     parent,
     { amount, token, return_uri, orderItem, branchId },
     { accessToken },

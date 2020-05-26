@@ -56,18 +56,6 @@ const schema = gql`
       state: String
     ): User
 
-    # Order
-    createOrderByOmise(
-      amount: Float!
-      token: String
-      return_uri: String
-      orderItem: [OrderItemInput]
-      branchId: ID!
-    ): User
-    updateOrder(id: ID!, status: String, discount: Float): Order
-    cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
-    doneOrderItemByID(orderItemId: String!): OrderItem
-
     createPromotion(
       title: String
       detail: String
@@ -158,6 +146,18 @@ const schema = gql`
       orderItem: [OrderItemInput]
       branchId: ID!
     ): Table
+
+    # Online Order
+    createOrderItemFromOnlineOrder(
+      amount: Float!
+      token: String
+      return_uri: String
+      orderItem: [OrderItemInput]
+      branchId: ID!
+    ): User
+    updateOrder(id: ID!, status: String, discount: Float): Order
+    cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
+    doneOrderItemByID(orderItemId: String!): OrderItem
   }
 
   type User {
@@ -293,6 +293,12 @@ const schema = gql`
     branch: String!
     place: [Place]
     stock: [Stock]
+    position: Coords
+  }
+
+  type Coords {
+    lat: String!
+    lng: String!
   }
 
   type Place {

@@ -17,6 +17,14 @@ const branchSchema = new mongoose.Schema({
       ref: 'Stock',
     },
   ],
+  position: {
+    lat: {
+      type: String,
+    },
+    lng: {
+      type: String,
+    },
+  },
 });
 
 const Branch = mongoose.model('Branch', branchSchema);

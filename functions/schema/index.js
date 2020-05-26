@@ -154,7 +154,7 @@ const schema = gql`
       return_uri: String
       orderItem: [OrderItemInput]
       branchId: ID!
-    ): User
+    ): Order
     updateOrder(id: ID!, status: String, discount: Float): Order
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
     doneOrderItemByID(orderItemId: String!): OrderItem

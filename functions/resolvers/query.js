@@ -222,7 +222,6 @@ const Query = {
     return saleProduct;
   },
   branch: async (parent, arg, { accessToken }, info) => {
-    console.log('branch');
     return Branch.find({})
       .populate({
         path: 'place',

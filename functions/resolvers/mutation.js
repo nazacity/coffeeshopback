@@ -1045,29 +1045,30 @@ const Mutation = {
           await StoreProduct.findByIdAndUpdate(item.productId, {
             sales: [...product.sales, orderItem.id],
           });
+          if (product.stockOutDetail) {
+            product.stockOutDetail.map(async (stockOut) => {
+              const stock = await Stock.findOne({
+                branch: branchId,
+                name: stockOut.name,
+              });
 
-          product.stockOutDetail.map(async (stockOut) => {
-            const stock = await Stock.findOne({
-              branch: branchId,
-              name: stockOut.name,
-            });
+              const createStockOut = await StockOut.create({
+                stock: stock.id,
+                out: stockOut.out,
+                cost: (stock.amount / stock.remain) * stockOut.out,
+              });
 
-            const createStockOut = await StockOut.create({
-              stock: stock.id,
-              out: stockOut.out,
-              cost: (stock.amount / stock.remain) * stockOut.out,
+              const newRemain = stock.remain - stockOut.out;
+              const newAmount = stock.amount - createStockOut.cost;
+              let newStockOut = stock.stockOut;
+              newStockOut.push(createStockOut.id);
+              const newStock = await Stock.findByIdAndUpdate(stock.id, {
+                remain: newRemain,
+                amount: newAmount,
+                stockOut: newStockOut,
+              });
             });
-
-            const newRemain = stock.remain - stockOut.out;
-            const newAmount = stock.amount - createStockOut.cost;
-            let newStockOut = stock.stockOut;
-            newStockOut.push(createStockOut.id);
-            const newStock = await Stock.findByIdAndUpdate(stock.id, {
-              remain: newRemain,
-              amount: newAmount,
-              stockOut: newStockOut,
-            });
-          });
+          }
 
           return OrderItem.findById(orderItem.id).populate({
             path: 'storeProduct',
@@ -1145,17 +1146,24 @@ const Mutation = {
     let customer;
 
     // Credit Card: User use exist card
-    if (amount && cardId && !token && !return_uri) {
-      const checkCardId = await retrieveCustomer(cardId);
+    // if (amount && cardId && !token && !return_uri) {
+    //   const checkCardId = await retrieveCustomer(cardId);
 
-      if (!checkCardId) throw new Error('Cannot process payment');
+    //   if (!checkCardId) throw new Error('Cannot process payment');
 
-      customer = checkCardId;
-    }
+    //   customer = checkCardId;
+    // }
+
+    console.log(amount);
+    console.log(token);
 
     // Credit Card: User use new card
-    if (amount && token && !cardId && !return_uri) {
-      const newCustomer = await createCustomer(user.email, user.name, token);
+    if (amount && token && !return_uri) {
+      const newCustomer = await createCustomer(
+        user.email,
+        user.firstName,
+        token
+      );
 
       if (!newCustomer) throw new Error('Cannot process payment');
 
@@ -1212,28 +1220,30 @@ const Mutation = {
             sales: [...product.sales, orderItem.id],
           });
 
-          product.stockOutDetail.map(async (stockOut) => {
-            const stock = await Stock.findOne({
-              branch: branchId,
-              name: stockOut.name,
-            });
+          if (product.stockOutDetail) {
+            product.stockOutDetail.map(async (stockOut) => {
+              const stock = await Stock.findOne({
+                branch: branchId,
+                name: stockOut.name,
+              });
 
-            const createStockOut = await StockOut.create({
-              stock: stock.id,
-              out: stockOut.out,
-              cost: (stock.amount / stock.remain) * stockOut.out,
-            });
+              const createStockOut = await StockOut.create({
+                stock: stock.id,
+                out: stockOut.out,
+                cost: (stock.amount / stock.remain) * stockOut.out,
+              });
 
-            const newRemain = stock.remain - stockOut.out;
-            const newAmount = stock.amount - createStockOut.cost;
-            let newStockOut = stock.stockOut;
-            newStockOut.push(createStockOut.id);
-            const newStock = await Stock.findByIdAndUpdate(stock.id, {
-              remain: newRemain,
-              amount: newAmount,
-              stockOut: newStockOut,
+              const newRemain = stock.remain - stockOut.out;
+              const newAmount = stock.amount - createStockOut.cost;
+              let newStockOut = stock.stockOut;
+              newStockOut.push(createStockOut.id);
+              const newStock = await Stock.findByIdAndUpdate(stock.id, {
+                remain: newRemain,
+                amount: newAmount,
+                stockOut: newStockOut,
+              });
             });
-          });
+          }
 
           return OrderItem.findById(orderItem.id).populate({
             path: 'onlineProduct',
@@ -1246,11 +1256,12 @@ const Mutation = {
 
     let dbItems = [];
     await orderItemsArray.map((orderItem) => {
+      console.log(orderItem);
       dbItems.push({
         id: orderItem.id,
         product: {
-          name: orderItem.storeProduct.name,
-          pictureUrl: orderItem.storeProduct.pictureUrl,
+          name: orderItem.onlineProduct.name,
+          pictureUrl: orderItem.onlineProduct.pictureUrl,
         },
         quantity: orderItem.quantity,
       });
@@ -1259,8 +1270,10 @@ const Mutation = {
     let data = {
       createdAt: new Date().getTime(),
       user: {
-        id: tableId,
-        firstName: table.place.table,
+        id: userId,
+        firstName: user.firstName,
+        pictureUrl: user.pictureUrl,
+        phone: user.phone,
       },
       items: dbItems,
     };
@@ -1280,11 +1293,12 @@ const Mutation = {
       by: 'omise',
     });
 
-    // Return order
-    return User.findById(userId).populate({
-      path: 'order',
-      populate: { path: 'items', populate: { path: 'onlineProduct' } },
+    await User.findByIdAndUpdate(userId, {
+      orders: !user.orders ? [order.id] : [...user.orders, order.id],
     });
+
+    // Return order
+    return order;
   },
 };
 

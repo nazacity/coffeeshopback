@@ -77,6 +77,7 @@ const schema = gql`
       position: String
       pin: String
     ): Employee
+    deleteEmployee(id: ID!): Employee
     deleteTable(id: ID!): Table
     createBranch(branch: String!): Branch
     deleteBranch(id: ID!): Branch
@@ -145,6 +146,7 @@ const schema = gql`
       tableId: ID!
       orderItem: [OrderItemInput]
       branchId: ID!
+      position: CoordsInput!
     ): Table
 
     # Online Order
@@ -154,6 +156,7 @@ const schema = gql`
       return_uri: String
       orderItem: [OrderItemInput]
       branchId: ID!
+      position: CoordsInput!
     ): Order
     updateOrder(id: ID!, status: String, discount: Float): Order
     cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
@@ -278,6 +281,7 @@ const schema = gql`
     chargeId: String
     status: String
     by: HowToPay
+    position: Coords
     items: [OrderItem]!
     createdAt: Float
     authorizeUri: String
@@ -299,6 +303,11 @@ const schema = gql`
   type Coords {
     lat: String!
     lng: String!
+  }
+
+  input CoordsInput {
+    lat: Float!
+    lng: Float!
   }
 
   type Place {

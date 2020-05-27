@@ -51,7 +51,7 @@ const Mutation = {
         phone: '',
         pictureUrl: '',
         state: 'guess',
-        carts: [],
+        orders: [],
       };
       return data;
     }
@@ -64,7 +64,10 @@ const Mutation = {
         });
       }
 
-      const updatedUser = await User.findById(user.id);
+      const updatedUser = await User.findById(user.id).populate({
+        path: 'orders',
+        populate: { path: 'items', populate: { path: 'onlineProduct' } },
+      });
       return updatedUser;
     } else {
       const createUser = await User.create({
@@ -76,7 +79,10 @@ const Mutation = {
         pictureUrl: line.pictureUrl,
         state: 'client0',
       });
-      return createUser;
+      return User.findById(createUser.id).populate({
+        path: 'orders',
+        populate: { path: 'items', populate: { path: 'onlineProduct' } },
+      });
     }
   },
   register: async (
@@ -258,6 +264,31 @@ const Mutation = {
     const newEmployee = await Employee.findById(id).populate({ path: 'user' });
 
     return newEmployee;
+  },
+  deleteEmployee: async (parent, { id }, { accessToken }, info) => {
+    if (!accessToken) throw new Error('Access Token is not defined');
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin' && user.id !== employee.user.id)
+      throw new Error('No Authorization');
+
+    const employee = await Employee.findByIdAndRemove(id);
+    const updateUser = await User.findByIdAndUpdate(employee.user, {
+      state: 'client2',
+    });
+
+    return employee;
   },
   cancelOrderItemByID: async (
     parent,
@@ -1118,7 +1149,7 @@ const Mutation = {
   },
   createOrderItemFromOnlineOrder: async (
     parent,
-    { amount, token, return_uri, orderItem, branchId },
+    { amount, token, return_uri, orderItem, branchId, position },
     { accessToken },
     info
   ) => {
@@ -1318,6 +1349,7 @@ const Mutation = {
       net: charge.net,
       fee: charge.fee,
       fee_vat: charge.fee_vat,
+      position: position,
       items: orderItemsArray.map((orderItem) => orderItem.id),
       chargeId: charge.id,
       status: charge.status,

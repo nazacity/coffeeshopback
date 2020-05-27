@@ -42,7 +42,12 @@ const Query = {
     return user;
   },
   users: async (parent, args, context, info) => {
-    return User.find({}).populate({ path: 'table' });
+    return User.find({})
+      .populate({ path: 'table' })
+      .populate({
+        path: 'orders',
+        populate: { path: 'items', populate: { path: 'onlineProduct' } },
+      });
   },
   orders: async (parent, args, { accessToken }, info) => {
     return Order.find({})

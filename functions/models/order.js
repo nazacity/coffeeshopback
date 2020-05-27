@@ -33,6 +33,14 @@ const orderSchema = new mongoose.Schema({
   by: {
     type: String,
   },
+  position: {
+    lat: {
+      type: String,
+    },
+    lng: {
+      type: String,
+    },
+  },
   items: [
     {
       type: mongoose.Schema.Types.ObjectId,

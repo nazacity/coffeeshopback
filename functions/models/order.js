@@ -5,6 +5,10 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+  },
   amount: {
     type: String,
   },
@@ -25,10 +29,6 @@ const orderSchema = new mongoose.Schema({
   },
   discount: {
     type: String,
-  },
-  table: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Table',
   },
   by: {
     type: String,

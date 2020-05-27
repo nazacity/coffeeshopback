@@ -1154,9 +1154,6 @@ const Mutation = {
     //   customer = checkCardId;
     // }
 
-    console.log(amount);
-    console.log(token);
-
     // Credit Card: User use new card
     if (amount && token && !return_uri) {
       const newCustomer = await createCustomer(
@@ -1227,11 +1224,23 @@ const Mutation = {
                 name: stockOut.name,
               });
 
-              const createStockOut = await StockOut.create({
-                stock: stock.id,
-                out: stockOut.out,
-                cost: (stock.amount / stock.remain) * stockOut.out,
-              });
+              let createStockOut;
+              if (stock.remain === 0) {
+                createStockOut = await StockOut.create({
+                  stock: stock.id,
+                  out: stockOut.out * item.quantity,
+                  cost: 0,
+                });
+              } else {
+                createStockOut = await StockOut.create({
+                  stock: stock.id,
+                  out: stockOut.out * item.quantity,
+                  cost:
+                    (stock.amount / stock.remain) *
+                    stockOut.out *
+                    item.quantity,
+                });
+              }
 
               const newRemain = stock.remain - stockOut.out;
               const newAmount = stock.amount - createStockOut.cost;
@@ -1251,12 +1260,32 @@ const Mutation = {
         })
       );
     };
+
+    const convertCartToOrder2 = async () => {
+      return Promise.all(
+        orderItem.map(async (item) => {
+          const orderItem = await OrderItem.create({
+            onlineProduct: item.productId,
+            quantity: item.quantity,
+            state: 'progressing',
+          });
+
+          return OrderItem.findById(orderItem.id).populate({
+            path: 'onlineProduct',
+          });
+        })
+      );
+    };
     // Create order
-    const orderItemsArray = await convertCartToOrder();
+    let orderItemsArray;
+    if (charge.status === 'successful') {
+      orderItemsArray = await convertCartToOrder();
+    } else {
+      orderItemsArray = await convertCartToOrder2();
+    }
 
     let dbItems = [];
     await orderItemsArray.map((orderItem) => {
-      console.log(orderItem);
       dbItems.push({
         id: orderItem.id,
         product: {
@@ -1267,21 +1296,24 @@ const Mutation = {
       });
     });
 
-    let data = {
-      createdAt: new Date().getTime(),
-      user: {
-        id: userId,
-        firstName: user.firstName,
-        pictureUrl: user.pictureUrl,
-        phone: user.phone,
-      },
-      items: dbItems,
-    };
+    if (charge.status === 'successful') {
+      let data = {
+        createdAt: new Date().getTime(),
+        user: {
+          id: userId,
+          firstName: user.firstName,
+          pictureUrl: user.pictureUrl,
+          phone: user.phone,
+        },
+        items: dbItems,
+      };
 
-    db.ref(`/${branchId}`).push(data);
+      db.ref(`/${branchId}`).push(data);
+    }
 
     const order = await Order.create({
       user: userId,
+      branch: branchId,
       amount: amount,
       net: charge.net,
       fee: charge.fee,

@@ -268,7 +268,8 @@ const schema = gql`
 
   type Order {
     id: ID!
-    user: User
+    branch: Branch!
+    user: User!
     amount: Float
     discount: Float
     net: Float
@@ -276,7 +277,6 @@ const schema = gql`
     fee_vat: Float
     chargeId: String
     status: String
-    table: Table
     by: HowToPay
     items: [OrderItem]!
     createdAt: Float

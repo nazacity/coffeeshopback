@@ -242,7 +242,7 @@ const Query = {
       .populate({ path: 'branch' })
       .populate({
         path: 'bill',
-        populate: { path: 'orders', populate: { path: 'storeProduct' } },
+        populate: { path: 'items', populate: { path: 'storeProduct' } },
       });
   },
   places: async (parent, arg, { accessToken }, info) => {
@@ -250,7 +250,7 @@ const Query = {
       .populate({ path: 'branch' })
       .populate({
         path: 'bill',
-        populate: { path: 'orders', populate: { path: 'storeProduct' } },
+        populate: { path: 'items', populate: { path: 'storeProduct' } },
       });
   },
   stockCatalog: async (parent, arg, { accessToken }, info) => {

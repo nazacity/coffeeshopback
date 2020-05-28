@@ -13,7 +13,7 @@ const tableSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  orders: [
+  items: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'OrderItem',

@@ -94,6 +94,7 @@ const omiseWebHooks = async (req, res, next) => {
 
       let dbData = {
         createdAt: new Date().getTime(),
+        id: result.id,
         user: {
           id: result.user.id,
           firstName: result.user.firstName,

@@ -292,7 +292,7 @@ const Mutation = {
   },
   cancelOrderItemByID: async (
     parent,
-    { orderId, orderItemId },
+    { orderId, orderItemId, quantity },
     { accessToken },
     info
   ) => {
@@ -307,28 +307,37 @@ const Mutation = {
       .catch((err) => {
         console.log(err);
       });
-    await OrderItem.findByIdAndRemove(orderItemId);
 
-    const order = await Order.findById(orderId).populate({
+    console.log('quantity', quantity);
+
+    const order = await Table.findById(orderId).populate({
       path: 'items',
-      populate: { path: 'product' },
+      populate: { path: 'storeProduct' },
     });
 
-    let items = order.items.filter((item) => {
-      return item.id !== orderItemId && item.state === 'progressing';
-    });
-    if (items.length === 0) {
-      const newUser = await User.findById(order.user);
-      const newOrder = newUser.orders.filter(
-        (order) => order.toString() !== orderId
-      );
-      await User.findByIdAndUpdate(order.user, { orders: newOrder });
-      return Order.findByIdAndRemove(orderId);
+    console.log('run');
+    let indexItem = order.items.findIndex((item) => item.id === orderItemId);
+    console.log(indexItem);
+
+    if (order.items[indexItem].quantity - quantity === 0) {
+      console.log('quantity == 0');
+
+      await OrderItem.findByIdAndRemove(orderItemId);
+      let items = order.items.filter((item) => item.id !== orderItemId);
+      await Table.findByIdAndUpdate(orderId, { items });
+    } else {
+      console.log('quantity !== 0');
+
+      const oldOrderItem = await OrderItem.findById(orderItemId);
+      let newOrderItemQuantity = oldOrderItem.quantity - quantity;
+      await OrderItem.findByIdAndUpdate(orderItemId, {
+        quantity: newOrderItemQuantity,
+      });
     }
-    await Order.findByIdAndUpdate(orderId, { items });
-    return Order.findById(orderId)
+
+    return Table.findById(orderId)
       .populate({ path: 'user' })
-      .populate({ path: 'items', populate: { path: 'product' } });
+      .populate({ path: 'items', populate: { path: 'storeProduct' } });
   },
   doneOrderItemByID: async (parent, { orderItemId }, { accessToken }, info) => {
     let line;
@@ -1063,19 +1072,48 @@ const Mutation = {
     info
   ) => {
     // Convert cartItems to orderItems
+
     const convertCartToOrder = async () => {
       return Promise.all(
         orderItem.map(async (item) => {
-          const orderItem = await OrderItem.create({
-            storeProduct: item.productId,
-            quantity: item.quantity,
-            state: 'progressing',
+          // Check OrderItem from Table
+          const table = await Table.findById(tableId).populate({
+            path: 'items',
+            populate: 'storeProduct',
           });
+
+          const existIndex = table.items.findIndex((tableItem) => {
+            return tableItem.storeProduct.id === item.productId;
+          });
+
+          let orderItem;
+          if (existIndex > -1) {
+            const oldOrderItem = await OrderItem.findById(
+              table.items[existIndex].id
+            );
+
+            orderItem = await OrderItem.findByIdAndUpdate(
+              table.items[existIndex].id,
+              {
+                quantity: oldOrderItem.quantity + item.quantity,
+              }
+            );
+          } else {
+            orderItem = await OrderItem.create({
+              storeProduct: item.productId,
+              quantity: item.quantity,
+              state: 'waiting',
+            });
+          }
+
           const product = await StoreProduct.findById(item.productId);
 
-          await StoreProduct.findByIdAndUpdate(item.productId, {
-            sales: [...product.sales, orderItem.id],
-          });
+          if (existIndex === -1) {
+            await StoreProduct.findByIdAndUpdate(item.productId, {
+              sales: [...product.sales, orderItem.id],
+            });
+          }
+
           if (product.stockOutDetail) {
             product.stockOutDetail.map(async (stockOut) => {
               const stock = await Stock.findOne({
@@ -1085,11 +1123,12 @@ const Mutation = {
 
               const createStockOut = await StockOut.create({
                 stock: stock.id,
-                out: stockOut.out,
-                cost: (stock.amount / stock.remain) * stockOut.out,
+                out: stockOut.out * item.quantity,
+                cost:
+                  (stock.amount / stock.remain) * stockOut.out * item.quantity,
               });
 
-              const newRemain = stock.remain - stockOut.out;
+              const newRemain = stock.remain - createStockOut.out;
               const newAmount = stock.amount - createStockOut.cost;
               let newStockOut = stock.stockOut;
               newStockOut.push(createStockOut.id);
@@ -1101,9 +1140,14 @@ const Mutation = {
             });
           }
 
-          return OrderItem.findById(orderItem.id).populate({
+          const oldOrderItem = await OrderItem.findById(orderItem.id).populate({
             path: 'storeProduct',
           });
+
+          let returnOrder = oldOrderItem;
+
+          returnOrder.quantity = item.quantity;
+          return returnOrder;
         })
       );
     };
@@ -1111,10 +1155,9 @@ const Mutation = {
     const orderItemsArray = await convertCartToOrder();
     const table = await Table.findById(tableId).populate({
       path: 'place',
-      populate: 'branch',
     });
 
-    let newItems = table.orders;
+    let newItems = table.items;
     let dbItems = [];
     await orderItemsArray.map((orderItem) => {
       dbItems.push({
@@ -1125,11 +1168,16 @@ const Mutation = {
         },
         quantity: orderItem.quantity,
       });
-      newItems = [...newItems, orderItem.id];
+      if (newItems.includes(orderItem.id)) {
+        return;
+      } else {
+        newItems = [...newItems, orderItem.id];
+      }
     });
 
     let data = {
       createdAt: new Date().getTime(),
+      id: tableId,
       user: {
         id: tableId,
         firstName: table.place.table,
@@ -1140,11 +1188,11 @@ const Mutation = {
     db.ref(`/${branchId}`).push(data);
 
     await Table.findByIdAndUpdate(tableId, {
-      orders: newItems,
+      items: newItems,
     });
 
     return Table.findByIdAndUpdate(tableId)
-      .populate({ path: 'orders', populate: 'storeProduct' })
+      .populate({ path: 'items', populate: 'storeProduct' })
       .populate({ path: 'place', populate: 'branch' });
   },
   createOrderItemFromOnlineOrder: async (
@@ -1240,7 +1288,7 @@ const Mutation = {
           const orderItem = await OrderItem.create({
             onlineProduct: item.productId,
             quantity: item.quantity,
-            state: 'progressing',
+            state: 'waiting',
           });
           const product = await OnlineProduct.findById(item.productId);
 
@@ -1273,7 +1321,7 @@ const Mutation = {
                 });
               }
 
-              const newRemain = stock.remain - stockOut.out;
+              const newRemain = stock.remain - createStockOut.out;
               const newAmount = stock.amount - createStockOut.cost;
               let newStockOut = stock.stockOut;
               newStockOut.push(createStockOut.id);
@@ -1327,21 +1375,6 @@ const Mutation = {
       });
     });
 
-    if (charge.status === 'successful') {
-      let data = {
-        createdAt: new Date().getTime(),
-        user: {
-          id: userId,
-          firstName: user.firstName,
-          pictureUrl: user.pictureUrl,
-          phone: user.phone,
-        },
-        items: dbItems,
-      };
-
-      db.ref(`/${branchId}`).push(data);
-    }
-
     const order = await Order.create({
       user: userId,
       branch: branchId,
@@ -1356,6 +1389,22 @@ const Mutation = {
       authorizeUri: charge.authorize_uri ? charge.authorize_uri : null,
       by: 'omise',
     });
+
+    if (charge.status === 'successful') {
+      let data = {
+        createdAt: new Date().getTime(),
+        id: order.id,
+        user: {
+          id: userId,
+          firstName: user.firstName,
+          pictureUrl: user.pictureUrl,
+          phone: user.phone,
+        },
+        items: dbItems,
+      };
+
+      db.ref(`/${branchId}`).push(data);
+    }
 
     await User.findByIdAndUpdate(userId, {
       orders: !user.orders ? [order.id] : [...user.orders, order.id],

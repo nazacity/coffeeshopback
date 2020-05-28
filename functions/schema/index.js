@@ -146,7 +146,11 @@ const schema = gql`
       tableId: ID!
       orderItem: [OrderItemInput]
       branchId: ID!
-      position: CoordsInput!
+    ): Table
+    cancelOrderItemByID(
+      orderId: String!
+      orderItemId: String!
+      quantity: Float!
     ): Table
 
     # Online Order
@@ -159,7 +163,7 @@ const schema = gql`
       position: CoordsInput!
     ): Order
     updateOrder(id: ID!, status: String, discount: Float): Order
-    cancelOrderItemByID(orderId: String!, orderItemId: String!): Order
+
     doneOrderItemByID(orderItemId: String!): OrderItem
   }
 
@@ -192,7 +196,7 @@ const schema = gql`
     place: Place
     adult: Float
     children: Float
-    orders: [OrderItem]
+    items: [OrderItem]
     discount: Float
     total: Float
     net: Float

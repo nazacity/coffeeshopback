@@ -308,26 +308,18 @@ const Mutation = {
         console.log(err);
       });
 
-    console.log('quantity', quantity);
-
     const order = await Table.findById(orderId).populate({
       path: 'items',
       populate: { path: 'storeProduct' },
     });
 
-    console.log('run');
     let indexItem = order.items.findIndex((item) => item.id === orderItemId);
-    console.log(indexItem);
 
     if (order.items[indexItem].quantity - quantity === 0) {
-      console.log('quantity == 0');
-
       await OrderItem.findByIdAndRemove(orderItemId);
       let items = order.items.filter((item) => item.id !== orderItemId);
       await Table.findByIdAndUpdate(orderId, { items });
     } else {
-      console.log('quantity !== 0');
-
       const oldOrderItem = await OrderItem.findById(orderItemId);
       let newOrderItemQuantity = oldOrderItem.quantity - quantity;
       await OrderItem.findByIdAndUpdate(orderItemId, {
@@ -1121,12 +1113,23 @@ const Mutation = {
                 name: stockOut.name,
               });
 
-              const createStockOut = await StockOut.create({
-                stock: stock.id,
-                out: stockOut.out * item.quantity,
-                cost:
-                  (stock.amount / stock.remain) * stockOut.out * item.quantity,
-              });
+              let createStockOut;
+              if (stock.remain <= 0) {
+                createStockOut = await StockOut.create({
+                  stock: stock.id,
+                  out: stockOut.out * item.quantity,
+                  cost: 0,
+                });
+              } else {
+                createStockOut = await StockOut.create({
+                  stock: stock.id,
+                  out: stockOut.out * item.quantity,
+                  cost:
+                    (stock.amount / stock.remain) *
+                    stockOut.out *
+                    item.quantity,
+                });
+              }
 
               const newRemain = stock.remain - createStockOut.out;
               const newAmount = stock.amount - createStockOut.cost;
@@ -1304,7 +1307,7 @@ const Mutation = {
               });
 
               let createStockOut;
-              if (stock.remain === 0) {
+              if (stock.remain <= 0) {
                 createStockOut = await StockOut.create({
                   stock: stock.id,
                   out: stockOut.out * item.quantity,
@@ -1396,6 +1399,7 @@ const Mutation = {
         id: order.id,
         user: {
           id: userId,
+          lineid: user.lineId,
           firstName: user.firstName,
           pictureUrl: user.pictureUrl,
           phone: user.phone,
@@ -1412,6 +1416,86 @@ const Mutation = {
 
     // Return order
     return order;
+  },
+  createOrderFromStoreOrder: async (
+    parent,
+    { tableId, discount },
+    { accessToken },
+    info
+  ) => {
+    const table = await Table.findByIdAndUpdate(tableId)
+      .populate({ path: 'items', populate: 'storeProduct' })
+      .populate({ path: 'place', populate: 'branch' });
+
+    const place = await Place.findByIdAndUpdate(table.place.id);
+
+    if (place.state === 'Wait') throw new Error('Bill is already created');
+
+    let amount =
+      table.items.reduce(
+        (sum, item) => sum + item.quantity * item.storeProduct.price,
+        0
+      ) * 100;
+
+    console.log(amount);
+    let discountData = (discount * amount) / 100;
+    let net = amount - discountData;
+
+    console.log(discountData);
+    console.log(net);
+
+    const order = await Order.create({
+      branch: table.place.branch,
+      place: table.place.id,
+      amount: amount,
+      discount: discountData,
+      net: net,
+      items: table.items.map((orderItem) => orderItem.id),
+      status: 'paying',
+      by: 'store',
+    });
+
+    await Place.findByIdAndUpdate(table.place.id, {
+      state: 'Wait',
+      order: order.id,
+    });
+
+    return Order.findById(order.id)
+      .populate({ path: 'place' })
+      .populate({ path: 'branch' })
+      .populate({ path: 'items', populate: 'storeProduct' });
+  },
+  clearPlace: async (parent, { placeId, by }, { accessToken }, info) => {
+    if (!by) throw new Error('กรุณาเลือกวิธีชำระเงิน');
+    const place = await Place.findByIdAndUpdate(placeId, {
+      state: 'Open',
+      adult: 0,
+      children: 0,
+      order: undefined,
+      bill: undefined,
+    });
+
+    await Order.findByIdAndUpdate(place.order, {
+      status: 'successful',
+      by: by,
+    });
+
+    await Table.findByIdAndRemove(place.bill);
+
+    return Place.findById(placeId)
+      .populate({ path: 'bill' })
+      .populate({ path: 'branch' });
+  },
+  ordersByDate: async (parent, { startDate, endDate }, context, info) => {
+    const orders = await Order.find({
+      createdAt: { $gte: startDate, $lte: endDate },
+    })
+      .populate({ path: 'items', populate: ['storeProduct', 'onlineProduct'] })
+      .populate({ path: 'user' })
+      .populate({ path: 'place' })
+      .populate({ path: 'branch' });
+
+    return orders;
   },
 };
 

@@ -49,31 +49,29 @@ const Query = {
         populate: { path: 'items', populate: { path: 'onlineProduct' } },
       });
   },
+  order: async (parent, { orderId }, { accessToken }, info) => {
+    return Order.findById(orderId)
+      .populate({ path: 'items', populate: ['storeProduct', 'onlineProduct'] })
+      .populate({ path: 'user' })
+      .populate({ path: 'place' })
+      .populate({ path: 'branch' });
+  },
   orders: async (parent, args, { accessToken }, info) => {
     return Order.find({})
-      .populate({
-        path: 'items',
-        populate: { path: 'product' },
-      })
+      .populate({ path: 'items', populate: ['storeProduct', 'onlineProduct'] })
       .populate({ path: 'user' })
-      .populate({ path: 'table' });
+      .populate({ path: 'place' })
+      .populate({ path: 'branch' });
   },
   ordersByDay: async (parent, { year, month, day }, context, info) => {
     let start = moment(`${year}-${month}-${day}`, 'YYYY MM DD').format('x');
     let end = moment(`${year}-${month}-${day + 1}`, 'YYYY MM DD').format('x');
 
     const orders = await Order.find({ createdAt: { $gte: start, $lte: end } })
-      .populate({ path: 'items', populate: { path: 'product' } })
-      .populate({ path: 'user' });
-
-    return orders;
-  },
-  ordersByDate: async (parent, { startDate, endDate }, context, info) => {
-    const orders = await Order.find({
-      createdAt: { $gte: startDate, $lte: endDate },
-    })
-      .populate({ path: 'items', populate: { path: 'product' } })
-      .populate({ path: 'user' });
+      .populate({ path: 'items', populate: ['storeProduct', 'onlineProduct'] })
+      .populate({ path: 'user' })
+      .populate({ path: 'place' })
+      .populate({ path: 'branch' });
 
     return orders;
   },
@@ -84,8 +82,10 @@ const Query = {
     const orders = await Order.find({
       createdAt: { $gte: start, $lte: end },
     })
-      .populate({ path: 'items', populate: { path: 'product' } })
-      .populate({ path: 'user' });
+      .populate({ path: 'items', populate: ['storeProduct', 'onlineProduct'] })
+      .populate({ path: 'user' })
+      .populate({ path: 'place' })
+      .populate({ path: 'branch' });
 
     return orders;
   },
@@ -136,73 +136,31 @@ const Query = {
     if (user.state !== 'admin') throw new Error('No Authorization');
     return Employee.find({}).populate({ path: 'user' });
   },
-  bestSaleMonthly: async (parent, { year, month }, { accessToken }, info) => {
-    // if (!accessToken) res.send({ message: 'No AccessToken' });
-    // let line;
-    // await axios
-    //   .get('https://api.line.me/v2/profile', {
-    //     headers: { Authorization: `Bearer ${accessToken}` },
-    //   })
-    //   .then((res) => {
-    //     line = res.data;
-    //   })
-    //   .catch((err) => {
-    //     console.log(err);
-    //   });
-    // const user = await User.findOne({ lineId: line.userId });
-    // if (user.state !== 'admin') throw new Error('No Authorization');
-    let start = moment(`${year} ${month} 1`, 'YYYY MM DD').format('x');
-    let end = moment(`${year} ${month + 1} 1`, 'YYYY MM DD').format('x');
-
-    const products = await Product.find({}).populate({ path: 'sales' });
-
-    let result = [];
-    await products.map((prod) => {
-      let month = [];
-      month = prod.sales.filter(
-        (orderItem) => orderItem.createdAt > start && orderItem.createdAt < end
-      );
-
-      let totalSales = 0;
-
-      totalSales = month.reduce(
-        (sum, orderItem) => sum + orderItem.quantity,
-        0
-      );
-
-      if (totalSales !== 0) {
-        result.push({ id: prod.id, ...prod._doc, totalSales });
-      }
-    });
-
-    const bestSaleProduct = await result.sort((a, b) => {
-      return b.totalSales - a.totalSales;
-    });
-    return bestSaleProduct.slice(0, 10);
-  },
-  saleDaily: async (parent, { year, month, day }, { accessToken }, info) => {
-    // if (!accessToken) res.send({ message: 'No AccessToken' });
-    // let line;
-    // await axios
-    //   .get('https://api.line.me/v2/profile', {
-    //     headers: { Authorization: `Bearer ${accessToken}` },
-    //   })
-    //   .then((res) => {
-    //     line = res.data;
-    //   })
-    //   .catch((err) => {
-    //     console.log(err);
-    //   });
-    // const user = await User.findOne({ lineId: line.userId });
-    // if (user.state !== 'admin') throw new Error('No Authorization');
+  saleStoreProductDaily: async (
+    parent,
+    { year, month, day },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) res.send({ message: 'No AccessToken' });
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
 
     let start = moment(`${year} ${month} ${day}`, 'YYYY MM DD').format('x');
     let end = moment(`${year} ${month} ${day + 1}`, 'YYYY MM DD').format('x');
-    console.log(year);
-    console.log(month);
-    console.log(day);
 
-    const products = await Product.find({}).populate({ path: 'sales' });
+    const products = await StoreProduct.find({}).populate({ path: 'sales' });
 
     let result = [];
     await products.map((prod) => {
@@ -223,18 +181,67 @@ const Query = {
     const saleProduct = await result.sort((a, b) => {
       return b.totalSales - a.totalSales;
     });
-    console.log(result);
+    return saleProduct;
+  },
+  saleOnlineProductDaily: async (
+    parent,
+    { year, month, day },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) res.send({ message: 'No AccessToken' });
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    let start = moment(`${year} ${month} ${day}`, 'YYYY MM DD').format('x');
+    let end = moment(`${year} ${month} ${day + 1}`, 'YYYY MM DD').format('x');
+
+    const products = await OnlineProduct.find({}).populate({ path: 'sales' });
+
+    let result = [];
+    await products.map((prod) => {
+      let day = [];
+      day = prod.sales.filter(
+        (orderItem) => orderItem.createdAt > start && orderItem.createdAt < end
+      );
+
+      let totalSales = 0;
+
+      totalSales = day.reduce((sum, orderItem) => sum + orderItem.quantity, 0);
+
+      if (totalSales !== 0) {
+        result.push({ id: prod.id, ...prod._doc, totalSales });
+      }
+    });
+
+    const saleProduct = await result.sort((a, b) => {
+      return b.totalSales - a.totalSales;
+    });
     return saleProduct;
   },
   branch: async (parent, arg, { accessToken }, info) => {
     return Branch.find({})
       .populate({
         path: 'place',
-        populate: { path: 'bill' },
+        populate: ['bill', 'order'],
       })
       .populate({
         path: 'stock',
         populate: ['catalog', 'stockAdd', 'stockOut'],
+      })
+      .populate({
+        path: 'order',
       });
   },
   place: async (parent, { id }, { accessToken }, info) => {

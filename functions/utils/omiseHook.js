@@ -97,6 +97,7 @@ const omiseWebHooks = async (req, res, next) => {
         id: result.id,
         user: {
           id: result.user.id,
+          lineId: result.user.lineId,
           firstName: result.user.firstName,
           pictureUrl: result.user.pictureUrl,
           phone: result.user.phone,

@@ -10,12 +10,20 @@ const schema = gql`
     employee: Employee
     employees: [Employee]!
     # Order
+    order(orderId: ID!): Order!
     orders: [Order]!
-    ordersByDay(year: Float, month: Float, day: Float): [Order]!
-    ordersByDate(startDate: Float, endDate: Float): [Order]!
+    ordersByDay(year: Float!, month: Float!, day: Float!): [Order]!
     ordersByMonth(year: Float, month: Float): [Order]!
-    bestSaleMonthly(year: Float, month: Float): [StoreProduct]!
-    saleDaily(year: Float, month: Float, day: Float): [StoreProduct]!
+    saleStoreProductDaily(
+      year: Float
+      month: Float
+      day: Float
+    ): [StoreProduct]!
+    saleOnlineProductDaily(
+      year: Float
+      month: Float
+      day: Float
+    ): [OnlineProduct]!
 
     # Table
     tableByID(id: ID!): Table
@@ -152,6 +160,8 @@ const schema = gql`
       orderItemId: String!
       quantity: Float!
     ): Table
+    createOrderFromStoreOrder(tableId: ID!, discount: Float): Order
+    clearPlace(placeId: ID!, by: String!): Place
 
     # Online Order
     createOrderItemFromOnlineOrder(
@@ -165,6 +175,9 @@ const schema = gql`
     updateOrder(id: ID!, status: String, discount: Float): Order
 
     doneOrderItemByID(orderItemId: String!): OrderItem
+
+    # Mutation Order By Date
+    ordersByDate(startDate: Float, endDate: Float): [Order]!
   }
 
   type User {
@@ -276,7 +289,8 @@ const schema = gql`
   type Order {
     id: ID!
     branch: Branch!
-    user: User!
+    place: Place
+    user: User
     amount: Float
     discount: Float
     net: Float
@@ -292,8 +306,10 @@ const schema = gql`
   }
 
   enum HowToPay {
-    cash
     omise
+    cash
+    creditcard
+    store
   }
 
   type Branch {
@@ -305,8 +321,8 @@ const schema = gql`
   }
 
   type Coords {
-    lat: String!
-    lng: String!
+    lat: String
+    lng: String
   }
 
   input CoordsInput {
@@ -318,6 +334,7 @@ const schema = gql`
     id: ID!
     branch: Branch!
     table: String!
+    order: Order
     state: String!
     adult: Int!
     children: Int!

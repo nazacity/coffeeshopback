@@ -9,6 +9,10 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Branch',
   },
+  place: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Place',
+  },
   amount: {
     type: String,
   },

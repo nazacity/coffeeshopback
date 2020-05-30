@@ -1078,6 +1078,7 @@ const Mutation = {
             return tableItem.storeProduct.id === item.productId;
           });
 
+          const product = await StoreProduct.findById(item.productId);
           let orderItem;
           if (existIndex > -1) {
             const oldOrderItem = await OrderItem.findById(
@@ -1097,11 +1098,6 @@ const Mutation = {
               state: 'waiting',
               branch: branchId,
             });
-          }
-
-          const product = await StoreProduct.findById(item.productId);
-
-          if (existIndex === -1) {
             await StoreProduct.findByIdAndUpdate(item.productId, {
               sales: [...product.sales, orderItem.id],
             });

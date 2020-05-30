@@ -14,16 +14,6 @@ const schema = gql`
     orders: [Order]!
     ordersByDay(year: Float!, month: Float!, day: Float!): [Order]!
     ordersByMonth(year: Float, month: Float): [Order]!
-    saleStoreProductDaily(
-      year: Float
-      month: Float
-      day: Float
-    ): [StoreProduct]!
-    saleOnlineProductDaily(
-      year: Float
-      month: Float
-      day: Float
-    ): [OnlineProduct]!
 
     # Table
     tableByID(id: ID!): Table
@@ -129,6 +119,11 @@ const schema = gql`
       catalogId: ID
     ): StoreProduct
     deleteStoreProduct(id: ID!): StoreProduct
+    saleStoreProduct(
+      startDate: Float!
+      endDate: Float!
+      branchId: ID!
+    ): [StoreProduct]!
 
     # OnlineProduct
     createOnlineProductCatalog(name: String!, th: String!): OnlineProductCatalog
@@ -148,6 +143,11 @@ const schema = gql`
       catalogId: ID
     ): OnlineProduct
     deleteOnlineProduct(id: ID!): OnlineProduct
+    saleOnlineProduct(
+      startDate: Float!
+      endDate: Float!
+      branchId: ID!
+    ): [OnlineProduct]!
 
     # Store Order
     createOrderItemFromStoreOrder(
@@ -386,6 +386,7 @@ const schema = gql`
     id: ID!
     onlineProduct: OnlineProduct
     storeProduct: StoreProduct
+    branch: Branch
     quantity: Int!
     cost: Float
     state: String!

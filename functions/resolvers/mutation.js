@@ -1095,6 +1095,7 @@ const Mutation = {
               storeProduct: item.productId,
               quantity: item.quantity,
               state: 'waiting',
+              branch: branchId,
             });
           }
 
@@ -1292,6 +1293,7 @@ const Mutation = {
             onlineProduct: item.productId,
             quantity: item.quantity,
             state: 'waiting',
+            branch: branchId,
           });
           const product = await OnlineProduct.findById(item.productId);
 
@@ -1350,6 +1352,7 @@ const Mutation = {
             onlineProduct: item.productId,
             quantity: item.quantity,
             state: 'progressing',
+            branch: branchId,
           });
 
           return OrderItem.findById(orderItem.id).populate({
@@ -1496,6 +1499,110 @@ const Mutation = {
       .populate({ path: 'branch' });
 
     return orders;
+  },
+  saleStoreProduct: async (
+    parent,
+    { startDate, endDate, branchId },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) res.send({ message: 'No AccessToken' });
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const products = await StoreProduct.find()
+      .populate({
+        path: 'sales',
+        populate: ['branch'],
+      })
+      .populate({ path: 'catalog' });
+
+    let result = [];
+    await products.map((prod) => {
+      let filterBranch = prod.sales.filter(
+        (orderItem) => orderItem.branch.id === branchId
+      );
+      let day = [];
+      day = filterBranch.filter(
+        (orderItem) =>
+          orderItem.createdAt > startDate && orderItem.createdAt < endDate
+      );
+
+      totalSales = day.reduce((sum, orderItem) => sum + orderItem.quantity, 0);
+
+      result.push({
+        id: prod.id,
+        ...prod._doc,
+        sales: prod.sales,
+        totalSales,
+        catalog: { id: prod.catalog.id },
+      });
+    });
+
+    return result;
+  },
+  saleOnlineProduct: async (
+    parent,
+    { startDate, endDate, branchId },
+    { accessToken },
+    info
+  ) => {
+    if (!accessToken) res.send({ message: 'No AccessToken' });
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin') throw new Error('No Authorization');
+
+    const products = await OnlineProduct.find({})
+      .populate({
+        path: 'sales',
+        populate: ['branch'],
+      })
+      .populate({ path: 'catalog' });
+
+    let result = [];
+    await products.map((prod) => {
+      let filterBranch = prod.sales.filter(
+        (orderItem) => orderItem.branch.id === branchId
+      );
+      let day = [];
+      day = filterBranch.filter(
+        (orderItem) =>
+          orderItem.createdAt > startDate && orderItem.createdAt < endDate
+      );
+
+      totalSales = day.reduce((sum, orderItem) => sum + orderItem.quantity, 0);
+
+      result.push({
+        id: prod.id,
+        ...prod._doc,
+        sales: prod.sales,
+        totalSales,
+        catalog: prod.catalog,
+      });
+    });
+
+    return result;
   },
 };
 

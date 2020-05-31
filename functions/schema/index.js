@@ -74,6 +74,7 @@ const schema = gql`
       state: String
       position: String
       pin: String
+      branchId: ID
     ): Employee
     deleteEmployee(id: ID!): Employee
     deleteTable(id: ID!): Table
@@ -194,6 +195,7 @@ const schema = gql`
     cards: [Card]!
     createdAt: Float
     table: Table
+    employee: Employee
   }
 
   type Promotion {

@@ -64,10 +64,12 @@ const Mutation = {
         });
       }
 
-      const updatedUser = await User.findById(user.id).populate({
-        path: 'orders',
-        populate: { path: 'items', populate: { path: 'onlineProduct' } },
-      });
+      const updatedUser = await User.findById(user.id)
+        .populate({
+          path: 'orders',
+          populate: { path: 'items', populate: { path: 'onlineProduct' } },
+        })
+        .populate({ path: 'employee' });
       return updatedUser;
     } else {
       const createUser = await User.create({
@@ -79,10 +81,12 @@ const Mutation = {
         pictureUrl: line.pictureUrl,
         state: 'client0',
       });
-      return User.findById(createUser.id).populate({
-        path: 'orders',
-        populate: { path: 'items', populate: { path: 'onlineProduct' } },
-      });
+      return User.findById(createUser.id)
+        .populate({
+          path: 'orders',
+          populate: { path: 'items', populate: { path: 'onlineProduct' } },
+        })
+        .populate({ path: 'employee' });
     }
   },
   register: async (
@@ -136,19 +140,13 @@ const Mutation = {
 
     const user = await User.findById(id);
 
-    const newInfo = {
-      firstName: firstName ? firstName : user.firstName,
-      lastName: lastName ? lastName : user.lastName,
-      email: email ? email : user.email,
-      phone: phone ? phone : user.phone,
-      state: state ? state : user.state,
-    };
+    let employee;
     if (state === 'admin' || state === 'employee') {
       const employees = await Employee.find({}).populate({ path: 'user' });
       let indexEmployee = await employees.findIndex((data) => data.id === id);
 
       if (indexEmployee === -1) {
-        await Employee.create({
+        employee = await Employee.create({
           user: user.id,
           IDcardPictureUrl: '',
           state: '',
@@ -157,6 +155,15 @@ const Mutation = {
         });
       }
     }
+
+    const newInfo = {
+      firstName: firstName ? firstName : user.firstName,
+      lastName: lastName ? lastName : user.lastName,
+      email: email ? email : user.email,
+      phone: phone ? phone : user.phone,
+      state: state ? state : user.state,
+      employee: employee ? employee : undefined,
+    };
 
     await User.findByIdAndUpdate(id, newInfo);
 
@@ -226,7 +233,7 @@ const Mutation = {
   },
   updateEmployee: async (
     parent,
-    { id, IDcardPictureUrl, state, position, pin },
+    { id, IDcardPictureUrl, state, position, pin, branchId },
     { accessToken },
     info
   ) => {
@@ -243,6 +250,8 @@ const Mutation = {
         console.log(err);
       });
 
+    console.log(branchId);
+
     const user = await User.findOne({ lineId: line.userId });
 
     const employee = await Employee.findById(id).populate({ path: 'user' });
@@ -257,11 +266,14 @@ const Mutation = {
       state: state ? state : employee.state,
       position: position ? position : employee.position,
       pin: pin ? pin : employee.pin,
+      branch: branchId ? branchId : employee.branchId,
     };
 
     await Employee.findByIdAndUpdate(id, newInfo);
 
-    const newEmployee = await Employee.findById(id).populate({ path: 'user' });
+    const newEmployee = await Employee.findById(id)
+      .populate({ path: 'user' })
+      .populate({ path: 'branch' });
 
     return newEmployee;
   },
@@ -286,6 +298,7 @@ const Mutation = {
     const employee = await Employee.findByIdAndRemove(id);
     const updateUser = await User.findByIdAndUpdate(employee.user, {
       state: 'client2',
+      employee: undefined,
     });
 
     return employee;

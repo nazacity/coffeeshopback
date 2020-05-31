@@ -38,7 +38,8 @@ const Query = {
         path: 'orders',
         populate: { path: 'items', populate: { path: 'onlineProduct' } },
       })
-      .populate({ path: 'table' });
+      .populate({ path: 'table' })
+      .populate({ path: 'employee' });
     return user;
   },
   users: async (parent, args, context, info) => {
@@ -47,7 +48,8 @@ const Query = {
       .populate({
         path: 'orders',
         populate: { path: 'items', populate: { path: 'onlineProduct' } },
-      });
+      })
+      .populate({ path: 'employee' });
   },
   order: async (parent, { orderId }, { accessToken }, info) => {
     return Order.findById(orderId)
@@ -109,7 +111,9 @@ const Query = {
       });
 
     if (!line) throw new Error('No Line User');
-    const employees = await Employee.find({}).populate({ path: 'user' });
+    const employees = await Employee.find({})
+      .populate({ path: 'user' })
+      .populate({ path: 'branch' });
 
     index = await employees.findIndex(
       (data) => data.user.lineId === line.userId
@@ -134,7 +138,9 @@ const Query = {
       });
     const user = await User.findOne({ lineId: line.userId });
     if (user.state !== 'admin') throw new Error('No Authorization');
-    return Employee.find({}).populate({ path: 'user' });
+    return Employee.find({})
+      .populate({ path: 'user' })
+      .populate({ path: 'branch' });
   },
   branch: async (parent, arg, { accessToken }, info) => {
     return Branch.find({})

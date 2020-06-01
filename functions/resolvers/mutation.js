@@ -69,7 +69,7 @@ const Mutation = {
           path: 'orders',
           populate: { path: 'items', populate: { path: 'onlineProduct' } },
         })
-        .populate({ path: 'employee' });
+        .populate({ path: 'employee', populate: 'branch' });
       return updatedUser;
     } else {
       const createUser = await User.create({
@@ -86,7 +86,7 @@ const Mutation = {
           path: 'orders',
           populate: { path: 'items', populate: { path: 'onlineProduct' } },
         })
-        .populate({ path: 'employee' });
+        .populate({ path: 'employee', populate: 'branch' });
     }
   },
   register: async (

@@ -21,6 +21,7 @@ const schema = gql`
     place(id: ID!): Place
     places: [Place]
     branch: [Branch]
+    branchFromId(branchId: ID): Branch
 
     # StoreProduct
     storeProductCatalog: [StoreProductCatalog]

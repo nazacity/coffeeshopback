@@ -39,7 +39,7 @@ const Query = {
         populate: { path: 'items', populate: { path: 'onlineProduct' } },
       })
       .populate({ path: 'table' })
-      .populate({ path: 'employee' });
+      .populate({ path: 'employee', populate: 'branch' });
     return user;
   },
   users: async (parent, args, context, info) => {
@@ -49,7 +49,7 @@ const Query = {
         path: 'orders',
         populate: { path: 'items', populate: { path: 'onlineProduct' } },
       })
-      .populate({ path: 'employee' });
+      .populate({ path: 'employee', populate: 'branch' });
   },
   order: async (parent, { orderId }, { accessToken }, info) => {
     return Order.findById(orderId)
@@ -144,6 +144,36 @@ const Query = {
   },
   branch: async (parent, arg, { accessToken }, info) => {
     return Branch.find({})
+      .populate({
+        path: 'place',
+        populate: ['bill', 'order'],
+      })
+      .populate({
+        path: 'stock',
+        populate: ['catalog', 'stockAdd', 'stockOut'],
+      })
+      .populate({
+        path: 'order',
+      });
+  },
+  branchFromId: async (parent, { branchId }, { accessToken }, info) => {
+    if (!accessToken) res.send({ message: 'No AccessToken' });
+    let line;
+    await axios
+      .get('https://api.line.me/v2/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
+        line = res.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    const user = await User.findOne({ lineId: line.userId });
+    if (user.state !== 'admin' && user.state !== 'employee')
+      throw new Error('No Authorization');
+
+    return Branch.findById(branchId)
       .populate({
         path: 'place',
         populate: ['bill', 'order'],

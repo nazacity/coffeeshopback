@@ -250,8 +250,6 @@ const Mutation = {
         console.log(err);
       });
 
-    console.log(branchId);
-
     const user = await User.findOne({ lineId: line.userId });
 
     const employee = await Employee.findById(id).populate({ path: 'user' });
@@ -460,6 +458,8 @@ const Mutation = {
       bill: createTable.id,
       state: 'Close',
     });
+
+    db.ref(`/tablestate/${placeId}`).set({ state: 'Close' });
 
     return Branch.findById(place.branch).populate({
       path: 'place',
@@ -1449,12 +1449,8 @@ const Mutation = {
         0
       ) * 100;
 
-    console.log(amount);
     let discountData = (discount * amount) / 100;
     let net = amount - discountData;
-
-    console.log(discountData);
-    console.log(net);
 
     const order = await Order.create({
       branch: table.place.branch,
@@ -1472,6 +1468,8 @@ const Mutation = {
       order: order.id,
     });
 
+    db.ref(`/tablestate/${place.id}`).set({ state: 'Wait' });
+
     return Order.findById(order.id)
       .populate({ path: 'place' })
       .populate({ path: 'branch' })
@@ -1486,6 +1484,8 @@ const Mutation = {
       order: undefined,
       bill: undefined,
     });
+
+    db.ref(`/tablestate/${placeId}`).set({ state: 'Open' });
 
     await Order.findByIdAndUpdate(place.order, {
       status: 'successful',
@@ -1612,6 +1612,14 @@ const Mutation = {
     });
 
     return result;
+  },
+  placeFromId: async (parent, { id }, { accessToken }, info) => {
+    return Place.findById(id)
+      .populate({ path: 'branch' })
+      .populate({
+        path: 'bill',
+        populate: { path: 'items', populate: { path: 'storeProduct' } },
+      });
   },
 };
 

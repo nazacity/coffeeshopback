@@ -180,6 +180,9 @@ const schema = gql`
 
     # Mutation Order By Date
     ordersByDate(startDate: Float, endDate: Float): [Order]!
+
+    # place
+    placeFromId(id: ID!): Place
   }
 
   type User {

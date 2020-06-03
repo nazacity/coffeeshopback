@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const DB_USERNAME = 'nazacity';
 const DB_PASSWORD = 'CvzelCmkBZpwfQO6';
 const DB_NAME = 'ecommerce';
-const db = require('./firebase');
+const firestore = require('./firebase');
 
 const Order = require('../models/order');
 const OrderItem = require('../models/orderItem');
@@ -101,11 +101,16 @@ const omiseWebHooks = async (req, res, next) => {
           firstName: result.user.firstName,
           pictureUrl: result.user.pictureUrl,
           phone: result.user.phone,
+          position: {
+            lat: +result.position.lat,
+            lng: +result.position.lng,
+          },
         },
         items: dbItems,
       };
 
-      db.ref(`/${result.branch}`).push(dbData);
+      firestore.collection(`branchId=${result.branch}`).add(dbData);
+      firestore.collection(`delivery=${result.branch}`).add(dbData);
     } else {
       // failed remove order and orderitem and orderlist from user
       const order = await Order.findOneAndRemove({ chargeId: data.id });

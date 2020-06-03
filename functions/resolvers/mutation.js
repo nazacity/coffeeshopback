@@ -19,7 +19,7 @@ const StoreProductCatalog = require('../models/storeProductCatalog');
 const StoreProduct = require('../models/storeProduct');
 const OnlineProductCatalog = require('../models/onlineProductCatalog');
 const OnlineProduct = require('../models/onlineProduct');
-const db = require('../utils/firebase');
+const firestore = require('../utils/firebase');
 
 const {
   retrieveCustomer,
@@ -459,7 +459,10 @@ const Mutation = {
       state: 'Close',
     });
 
-    db.ref(`/tablestate/${placeId}`).set({ state: 'Close' });
+    firestore.collection('tablestate').doc(placeId).set({
+      id: placeId,
+      state: 'Close',
+    });
 
     return Branch.findById(place.branch).populate({
       path: 'place',
@@ -1198,7 +1201,7 @@ const Mutation = {
       items: dbItems,
     };
 
-    db.ref(`/${branchId}`).push(data);
+    firestore.collection(`branchId=${branchId}`).add(data);
 
     await Table.findByIdAndUpdate(tableId, {
       items: newItems,
@@ -1415,11 +1418,13 @@ const Mutation = {
           firstName: user.firstName,
           pictureUrl: user.pictureUrl,
           phone: user.phone,
+          position: position,
         },
         items: dbItems,
       };
 
-      db.ref(`/${branchId}`).push(data);
+      firestore.collection(`branchId=${branchId}`).add(data);
+      firestore.collection(`delivery=${branchId}`).add(data);
     }
 
     await User.findByIdAndUpdate(userId, {
@@ -1468,7 +1473,10 @@ const Mutation = {
       order: order.id,
     });
 
-    db.ref(`/tablestate/${place.id}`).set({ state: 'Wait' });
+    firestore.collection('tablestate').doc(place.id).set({
+      id: place.id,
+      state: 'Wait',
+    });
 
     return Order.findById(order.id)
       .populate({ path: 'place' })
@@ -1485,7 +1493,10 @@ const Mutation = {
       bill: undefined,
     });
 
-    db.ref(`/tablestate/${placeId}`).set({ state: 'Open' });
+    firestore.collection('tablestate').doc(placeId).set({
+      id: placeId,
+      state: 'Open',
+    });
 
     await Order.findByIdAndUpdate(place.order, {
       status: 'successful',

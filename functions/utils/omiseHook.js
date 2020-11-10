@@ -54,6 +54,10 @@ const omiseWebHooks = async (req, res, next) => {
           orderItem.onlineProduct.id
         );
 
+        await OnlineProduct.findByIdAndUpdate(orderItem.onlineProduct.id, {
+          sales: [...product.sales, orderItem.id],
+        });
+
         if (product.stockOutDetail) {
           product.stockOutDetail.map(async (stockOut) => {
             const stock = await Stock.findOne({

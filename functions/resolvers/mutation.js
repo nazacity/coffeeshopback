@@ -74,12 +74,12 @@ const Mutation = {
     } else {
       const createUser = await User.create({
         lineId: line.userId,
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
+        firstName: 'admin',
+        lastName: 'admin',
+        email: 'admin@admin.com',
+        phone: '0881493995',
         pictureUrl: line.pictureUrl,
-        state: 'client0',
+        state: 'admin',
       });
       return User.findById(createUser.id)
         .populate({
